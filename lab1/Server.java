@@ -102,8 +102,7 @@ class Server {
     }
 
     public void sendReply() throws Exception{
-    	byte [] b = "ola".getBytes();
- 
+    	byte [] b = Response.getBytes();
     	DatagramPacket dp = new DatagramPacket(b,b.length,ip,clientPort);
     	ds.send(dp);
     	System.out.println("My Reply: "+ Response);    	
@@ -125,11 +124,15 @@ class Server {
     	DatagramPacket dp = new DatagramPacket(b,b.length);
 
 
-   
+   for(int i=0 ; i<10; i++){
+
    		//Receive Request
     	ds.receive(dp);
-    	    	ip = dp.getAddress();
-    	    	clientPort = dp.getPort();
+
+    	//get know the IP and Port Origins
+    	ip = dp.getAddress();
+    	clientPort = dp.getPort();
+
     	String msg = new String (b);
     	System.out.println("I received this message: "+msg);
         MsgReceived = msg.split("\\s+");
@@ -139,7 +142,7 @@ class Server {
 
         //Send Reply
         sendReply();
-
+}
 
     }
 

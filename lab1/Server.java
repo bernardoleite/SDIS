@@ -108,6 +108,35 @@ class Server {
     	System.out.println("My Reply: "+ Response);    	
     }
 
+    public void receiveRequest() throws Exception{
+
+        ds = new DatagramSocket(Port);
+        byte [] b = new byte[100];
+        DatagramPacket dp = new DatagramPacket(b,b.length);
+
+
+       for(int i=0 ; i<10; i++){
+
+            //Receive Request
+            ds.receive(dp);
+
+            //get know the IP and Port Origins
+            ip = dp.getAddress();
+            clientPort = dp.getPort();
+
+            String msg = new String (b);
+            System.out.println("I received this message: "+msg);
+            MsgReceived = msg.split("\\s+");
+
+            //Message Analysis
+            Response = treatAndResponse();
+
+            //Send Reply
+            sendReply();
+    }
+
+    }
+
 
     public void run(String[] args) throws Exception{
         if(args.length == 1 && isNumeric(args[0])){
@@ -119,30 +148,9 @@ class Server {
 
  		populateDataBase();
 
-    	ds = new DatagramSocket(Port);
-    	byte [] b = new byte[100];
-    	DatagramPacket dp = new DatagramPacket(b,b.length);
+        receiveRequest();
 
 
-   for(int i=0 ; i<10; i++){
-
-   		//Receive Request
-    	ds.receive(dp);
-
-    	//get know the IP and Port Origins
-    	ip = dp.getAddress();
-    	clientPort = dp.getPort();
-
-    	String msg = new String (b);
-    	System.out.println("I received this message: "+msg);
-        MsgReceived = msg.split("\\s+");
-
-        //Message Analysis
-        Response = treatAndResponse();
-
-        //Send Reply
-        sendReply();
-}
 
     }
 

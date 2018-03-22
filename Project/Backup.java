@@ -8,7 +8,7 @@ public class Backup implements Runnable {
     //File info
     private String file_name;
     private int replication_deg;
-
+    private String command;
     //Name of this Thread
 	private String name;
 
@@ -24,14 +24,14 @@ public class Backup implements Runnable {
     private FileEvent event = null;
 
     //Source and Dest
-    private String sourceFilePath = "/Users/bernardo/Desktop/orig/ola.rtf";
-    private String destinationPath = "/Users/bernardo/Desktop/dest/";
+//    private String sourceFilePath = "/Users/bernardo/Desktop/orig/ola.rtf";
+    private String destinationPath = "C:/Users/jsaraiva/github/SDIS/Project/dest/";
 
     //A packet(chunck)
     private DatagramPacket chunk;
 
     private byte[] data;
-    
+
 
     public FileEvent getFileEvent() {
         FileEvent fileEvent = new FileEvent();
@@ -73,7 +73,7 @@ public class Backup implements Runnable {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ObjectOutputStream os = new ObjectOutputStream(outputStream);
         os.writeObject(event);
-        data = outputStream.toByteArray(); 
+        data = outputStream.toByteArray();
         }
         catch(Exception e){
             e.printStackTrace();
@@ -105,9 +105,12 @@ public class Backup implements Runnable {
 
 
 	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg ){
-		this.name = name;
+		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
+        this.file_name = file_name;
+        this.replication_deg = replication_deg;
+        this.command = command;
 	}
 
 	public void run()  {
@@ -116,12 +119,13 @@ public class Backup implements Runnable {
 
         connect_multicast();
 
+        
         prepare_file();
 
         send_file();
 
         System.out.println("Server sent packet with a chunck!");
 
-		
+
 	}
 }

@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 
 public class Peer1 {
-    
+
    // final static String INET_ADDR = "224.0.0.3";
     final static int mcast_port = 8888;
 
@@ -15,9 +15,10 @@ public class Peer1 {
 
         System.setProperty("java.net.preferIPv4Stack", "true");
 
+
         //Backup Channel
         if(command.equals("SEND")){
-            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, "SEND", args[4], Integer.parseInt(args[5])));
+            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, "SEND", args[2], Integer.parseInt(args[3])));
             multicast_backup.start();
         }
 
@@ -35,13 +36,14 @@ public class Peer1 {
             Thread multicast_restore = new Thread(new Restore("IP:PORT",mcast_addr, mcast_port));
             multicast_restore.start();
 */
-     
+
         Thread.sleep(500);
-            
+
     }
 
     public static void main(String[] args) {
-
+        System.out.println(args.length);
+        System.out.println(args[0]);
         try
         {
             Peer1 peer = new Peer1();
@@ -57,45 +59,45 @@ public class Peer1 {
 
     public String checkCommands (String[] args) {
 
-            if(args.length < 2){
+            if(args.length < 1){
                 return "ERROR";
             }
 
-            if(args[2].indexOf(':') < 0){
-                this.port_number = Integer.parseInt(args[2]);
+            if(args[0].indexOf(':') < 0){
+                this.port_number = Integer.parseInt(args[0]);
             }
-            else if (args[2].indexOf(":") == 0){
-                String[] parts = args[2].split(":");
+            else if (args[0].indexOf(":") == 0){
+                String[] parts = args[0].split(":");
                 this.port_number = Integer.parseInt(parts[1]);
             }
             else{
-                String[] parts = args[2].split(":");
+                String[] parts = args[0].split(":");
                 this.ip_address =  parts[0];
                 this.port_number = Integer.parseInt(parts[1]);
             }
 
-            if (args.length == 2){
+            if (args.length == 1){
                 return "RECEIVER";
             }
             else {
-                if (args[3].equals("BACKUP")){
+                if (args[1].equals("BACKUP")){
                     return "SEND";
                 }
-                else if (args[3].equals("RESTORE")){
+                else if (args[1].equals("RESTORE")){
                     return "RESTORE";
                 }
-                else if (args[3].equals("DELETE")){
+                else if (args[1].equals("DELETE")){
                     return "DELETE";
                 }
-                else if (args[3].equals("RECLAIM")){
+                else if (args[1].equals("RECLAIM")){
                     return "RECLAIM";
                 }
-                else if (args[3].equals("STATE")){
+                else if (args[1].equals("STATE")){
                     return "STATE";
                 }
                 else
                     return "ERROR";
             }
 
-    }   
+    }
 }

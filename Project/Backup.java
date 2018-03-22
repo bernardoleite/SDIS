@@ -9,6 +9,7 @@ public class Backup implements Runnable {
     private String file_name;
     private int replication_deg;
     private String command;
+    private int port_number;
     //Name of this Thread
 	private String name;
 
@@ -24,7 +25,6 @@ public class Backup implements Runnable {
     private FileEvent event = null;
 
     //Source and Dest
-//    private String sourceFilePath = "/Users/bernardo/Desktop/orig/ola.rtf";
     private String destinationPath = "C:/Users/jsaraiva/github/SDIS/Project/dest/";
 
     //A packet(chunck)
@@ -32,15 +32,17 @@ public class Backup implements Runnable {
 
     private byte[] data;
 
+    //Receiver
+    private FileEvent fileEvent = null;
 
-    public FileEvent getFileEvent() {
+    public FileEvent getFileEvent() throws FileNotFoundException {
         FileEvent fileEvent = new FileEvent();
         String fileName = file_name.substring(file_name.lastIndexOf("/") + 1, file_name.length());
         String path = file_name.substring(0, file_name.lastIndexOf("/") + 1);
-        fileEvent.setDestinationDirectory(destinationPath);
+
         fileEvent.setFilename(fileName);
-        fileEvent.setSourceDirectory(file_name);
         File file = new File(file_name);
+
         if (file.isFile()) {
             try {
                 DataInputStream diStream = new DataInputStream(new FileInputStream(file));
@@ -70,9 +72,11 @@ public class Backup implements Runnable {
         try{
         byte[] incomingData = new byte[1024];
         event = getFileEvent();
+
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ObjectOutputStream os = new ObjectOutputStream(outputStream);
         os.writeObject(event);
+
         data = outputStream.toByteArray();
         }
         catch(Exception e){
@@ -104,12 +108,20 @@ public class Backup implements Runnable {
     }
 
 
-	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg ){
+	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number ){
 		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.file_name = file_name;
         this.replication_deg = replication_deg;
+        this.command = command;
+        this.port_number = port_number;
+	}
+
+  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command){
+		    this.name = name;
+        this.mcast_addr = mcast_addr;
+        this.mcast_port = mcast_port;
         this.command = command;
 	}
 
@@ -119,13 +131,63 @@ public class Backup implements Runnable {
 
         connect_multicast();
 
-        
-        prepare_file();
+        if(command.equals("SEND")) {
+          prepare_file();
 
-        send_file();
+          send_file();
+          System.out.println("Server sent packet with a chunck!");
 
-        System.out.println("Server sent packet with a chunck!");
+        }
+        else {
+          try {
+            byte[] incomingData = new byte[1024 * 1000 * 50];
+
+            DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+
+            serverSocket.receive(incomingPacket);
+
+            treatData(incomingPacket);
+
+            System.out.println("File received and saved to HDD!");
+          } catch (Exception ex) {
+              ex.printStackTrace();
+          }
+        }
 
 
-	}
+      }
+
+      public void createAndWriteFile() {
+          String outputFile = destinationPath + fileEvent.getFilename();
+          if (!new File(destinationPath).exists()) {
+              new File(destinationPath).mkdirs();
+          }
+          File dstFile = new File(outputFile);
+          FileOutputStream fileOutputStream = null;
+          try {
+              fileOutputStream = new FileOutputStream(dstFile);
+              fileOutputStream.write(fileEvent.getFileData());
+              fileOutputStream.flush();
+              fileOutputStream.close();
+              System.out.println("Output file : " + outputFile + " is successfully saved ");
+
+          } catch (FileNotFoundException e) {
+              e.printStackTrace();
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+
+      }
+
+      public void treatData(DatagramPacket incomingPacket) throws Exception{
+          byte[] data = incomingPacket.getData();
+          ByteArrayInputStream in = new ByteArrayInputStream(data);
+          ObjectInputStream is = new ObjectInputStream( in );
+          fileEvent = (FileEvent) is.readObject();
+          if (fileEvent.getStatus().equalsIgnoreCase("Error")) {
+              System.out.println("Some issue happened while packing the data @ client side");
+              System.exit(0);
+          }
+        createAndWriteFile(); // writing the file to hard disk
+      }
 }

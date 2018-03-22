@@ -15,10 +15,13 @@ public class Peer1 {
 
         System.setProperty("java.net.preferIPv4Stack", "true");
 
-
+        if(command.equals("RECEIVER")){
+          Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, command));
+          multicast_backup.start();
+        }
         //Backup Channel
         if(command.equals("SEND")){
-            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, "SEND", args[2], Integer.parseInt(args[3])));
+            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, command, args[2], Integer.parseInt(args[3]), port_number));
             multicast_backup.start();
         }
 

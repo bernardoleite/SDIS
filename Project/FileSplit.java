@@ -5,7 +5,7 @@ class FileSplit {
   int partCounter = 1; //I like to name parts from 001, 002, 003, ...
   //you can change it to 0 if you want 000, 001, ...
 
-  int sizeOfFiles = 64000; // 1MB
+  int sizeOfFiles = 64000;
   byte[] buffer = new byte[sizeOfFiles];
 
   String fileName = f.getName();

@@ -5,6 +5,10 @@ import java.net.*;
 
 public class Backup implements Runnable {
 
+    //File info
+    private String file_name;
+    private int replication_deg;
+
     //Name of this Thread
 	private String name;
 
@@ -31,12 +35,12 @@ public class Backup implements Runnable {
 
     public FileEvent getFileEvent() {
         FileEvent fileEvent = new FileEvent();
-        String fileName = sourceFilePath.substring(sourceFilePath.lastIndexOf("/") + 1, sourceFilePath.length());
-        String path = sourceFilePath.substring(0, sourceFilePath.lastIndexOf("/") + 1);
+        String fileName = file_name.substring(file_name.lastIndexOf("/") + 1, file_name.length());
+        String path = file_name.substring(0, file_name.lastIndexOf("/") + 1);
         fileEvent.setDestinationDirectory(destinationPath);
         fileEvent.setFilename(fileName);
-        fileEvent.setSourceDirectory(sourceFilePath);
-        File file = new File(sourceFilePath);
+        fileEvent.setSourceDirectory(file_name);
+        File file = new File(file_name);
         if (file.isFile()) {
             try {
                 DataInputStream diStream = new DataInputStream(new FileInputStream(file));
@@ -100,7 +104,7 @@ public class Backup implements Runnable {
     }
 
 
-	public Backup(String name, InetAddress mcast_addr, int mcast_port){
+	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg ){
 		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;

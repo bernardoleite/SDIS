@@ -2,6 +2,10 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+
 
 public class Backup implements Runnable {
 
@@ -10,8 +14,9 @@ public class Backup implements Runnable {
     private int replication_deg;
     private String command;
     private int port_number;
+
     //Name of this Thread
-	private String name;
+	   private String name;
 
     //Ip and Port
     private InetAddress mcast_addr;
@@ -21,9 +26,6 @@ public class Backup implements Runnable {
     //The Backup MulticastSocket
     private MulticastSocket serverSocket;
 
-    //handles a file
-    private FileEvent event = null;
-
     //Source and Dest
     private String destinationPath = "C:/Users/jsaraiva/github/SDIS/Project/dest/";
 
@@ -32,57 +34,7 @@ public class Backup implements Runnable {
 
     private byte[] data;
 
-    //Receiver
-    private FileEvent fileEvent = null;
 
-    public FileEvent getFileEvent() throws FileNotFoundException {
-        FileEvent fileEvent = new FileEvent();
-        String fileName = file_name.substring(file_name.lastIndexOf("/") + 1, file_name.length());
-        String path = file_name.substring(0, file_name.lastIndexOf("/") + 1);
-
-        fileEvent.setFilename(fileName);
-        File file = new File(file_name);
-
-        if (file.isFile()) {
-            try {
-                DataInputStream diStream = new DataInputStream(new FileInputStream(file));
-                long len = (int) file.length();
-                byte[] fileBytes = new byte[(int) len];
-                int read = 0;
-                int numRead = 0;
-                while (read < fileBytes.length && (numRead = diStream.read(fileBytes, read, fileBytes.length - read)) >= 0) {
-                    read = read + numRead;
-                }
-                fileEvent.setFileSize(len);
-                fileEvent.setFileData(fileBytes);
-                fileEvent.setStatus("Success");
-            } catch (Exception e) {
-                e.printStackTrace();
-                fileEvent.setStatus("Error");
-            }
-        } else {
-            System.out.println("path specified is not pointing to a file");
-            fileEvent.setStatus("Error");
-        }
-        return fileEvent;
-    }
-
-    public void prepare_file() {
-
-        try{
-        byte[] incomingData = new byte[1024];
-        event = getFileEvent();
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ObjectOutputStream os = new ObjectOutputStream(outputStream);
-        os.writeObject(event);
-
-        data = outputStream.toByteArray();
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-    }
 
     public void connect_multicast() {
 
@@ -96,7 +48,25 @@ public class Backup implements Runnable {
         }
     }
 
-    public void send_file() {
+    public void read_file()  {
+
+      try{
+      FileInputStream fileInputStream = null;
+      System.out.println(file_name);
+      File file = new File("/Users/bernardo/Desktop/" + file_name);
+      data = new byte[(int) file.length()];
+
+      //read file into bytes[]
+      fileInputStream = new FileInputStream(file);
+      fileInputStream.read(data);
+      }
+      catch(Exception e){
+        e.printStackTrace();
+      }
+
+    }
+
+   public void send_file() {
 
         try{
         chunk = new DatagramPacket(data ,data.length, mcast_addr, mcast_port);
@@ -125,6 +95,17 @@ public class Backup implements Runnable {
         this.command = command;
 	}
 
+  private void writeBytesToFileNio(byte[] bFile, String fileDest) {
+
+        try {
+            Path path = Paths.get(fileDest);
+            Files.write(path, bFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
 	public void run()  {
 
 		System.out.println("Backup Service Enabled!");
@@ -132,21 +113,23 @@ public class Backup implements Runnable {
         connect_multicast();
 
         if(command.equals("SEND")) {
-          prepare_file();
+
+          read_file();
 
           send_file();
+
           System.out.println("Server sent packet with a chunck!");
 
         }
         else {
           try {
-            byte[] incomingData = new byte[1024 * 1000 * 50];
+            byte[] incomingData = new byte[9366];
 
             DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
 
             serverSocket.receive(incomingPacket);
 
-            treatData(incomingPacket);
+            writeBytesToFileNio(incomingData, "/Users/bernardo/Desktop/SDIS/small.jpg");
 
             System.out.println("File received and saved to HDD!");
           } catch (Exception ex) {
@@ -157,37 +140,4 @@ public class Backup implements Runnable {
 
       }
 
-      public void createAndWriteFile() {
-          String outputFile = destinationPath + fileEvent.getFilename();
-          if (!new File(destinationPath).exists()) {
-              new File(destinationPath).mkdirs();
-          }
-          File dstFile = new File(outputFile);
-          FileOutputStream fileOutputStream = null;
-          try {
-              fileOutputStream = new FileOutputStream(dstFile);
-              fileOutputStream.write(fileEvent.getFileData());
-              fileOutputStream.flush();
-              fileOutputStream.close();
-              System.out.println("Output file : " + outputFile + " is successfully saved ");
-
-          } catch (FileNotFoundException e) {
-              e.printStackTrace();
-          } catch (IOException e) {
-              e.printStackTrace();
-          }
-
-      }
-
-      public void treatData(DatagramPacket incomingPacket) throws Exception{
-          byte[] data = incomingPacket.getData();
-          ByteArrayInputStream in = new ByteArrayInputStream(data);
-          ObjectInputStream is = new ObjectInputStream( in );
-          fileEvent = (FileEvent) is.readObject();
-          if (fileEvent.getStatus().equalsIgnoreCase("Error")) {
-              System.out.println("Some issue happened while packing the data @ client side");
-              System.exit(0);
-          }
-        createAndWriteFile(); // writing the file to hard disk
-      }
 }

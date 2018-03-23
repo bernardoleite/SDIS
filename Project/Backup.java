@@ -5,6 +5,8 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 
 public class Backup implements Runnable {
@@ -27,14 +29,14 @@ public class Backup implements Runnable {
     private MulticastSocket serverSocket;
 
     //Source and Dest
-    private String destinationPath = "C:/Users/jsaraiva/github/SDIS/Project/dest/";
+    private String destinationPath = "dest/";
 
     //A packet(chunck)
     private DatagramPacket chunk;
 
     private byte[] data;
 
-
+    private ArrayList<Chunk> chunksToSend = new ArrayList<Chunk>();
 
     public void connect_multicast() {
 
@@ -48,17 +50,53 @@ public class Backup implements Runnable {
         }
     }
 
+    public static String removeExtension(String s) {
+
+        String separator = System.getProperty("file.separator");
+        String filename;
+
+        // Remove the path upto the filename.
+        int lastSeparatorIndex = s.lastIndexOf(separator);
+        if (lastSeparatorIndex == -1) {
+            filename = s;
+        } else {
+            filename = s.substring(lastSeparatorIndex + 1);
+        }
+
+        // Remove the extension.
+        int extensionIndex = filename.lastIndexOf(".");
+        if (extensionIndex == -1)
+            return filename;
+
+        return filename.substring(0, extensionIndex);
+    }
+
     public void read_file()  {
 
       try{
-      FileInputStream fileInputStream = null;
-      System.out.println(file_name);
-      File file = new File("/Users/bernardo/Desktop/" + file_name);
-      data = new byte[(int) file.length()];
+        RandomAccessFile aFile = new RandomAccessFile
+                (file_name, "r");
+        FileChannel inChannel = aFile.getChannel();
+        ByteBuffer buffer = ByteBuffer.allocate(64000);
+        int j = 1;
+        while(inChannel.read(buffer) > 0)
+        {
+            buffer.flip();
 
-      //read file into bytes[]
-      fileInputStream = new FileInputStream(file);
-      fileInputStream.read(data);
+            byte[] arr = new byte[buffer.remaining()];
+            System.out.println(buffer.remaining());
+
+            buffer.get(arr, 0, arr.length);
+            System.out.println(file_name);
+            String str = removeExtension(file_name);
+            System.out.println(file_name);
+
+
+            chunksToSend.add(new Chunk(str, j++, replication_deg, arr));
+            buffer.clear(); // do something with the data and clear/compact it.
+        }
+        inChannel.close();
+        aFile.close();
       }
       catch(Exception e){
         e.printStackTrace();
@@ -69,8 +107,11 @@ public class Backup implements Runnable {
    public void send_file() {
 
         try{
-        chunk = new DatagramPacket(data ,data.length, mcast_addr, mcast_port);
-        serverSocket.send(chunk);
+          for(int i = 0; i < chunksToSend.size(); i++) {
+            Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
+            chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
+            serverSocket.send(chunk);
+          }
         }
         catch(Exception e){
             e.printStackTrace();
@@ -95,20 +136,47 @@ public class Backup implements Runnable {
         this.command = command;
 	}
 
-  private void writeBytesToFileNio(byte[] bFile, String fileDest) {
+  private void writeBytesToFileNio(Message receivedMessage) {
 
         try {
-            Path path = Paths.get(fileDest);
-            Files.write(path, bFile);
+            Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunNo() + ".txt");
+
+            FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunNo() + ".txt");
+
+            System.out.println(receivedMessage.getBody());
+            out.write(receivedMessage.getBody().getBytes());
+            out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-    }
+  }
+
+  private Message treatData(byte[] incomingData) {
+        String string = new String(incomingData);
+        System.out.println();
+        System.out.println();
+
+        String[] parts = string.split("\r\n\r\n");
+
+        String[] header = parts[0].split(" ");
+
+        if(header.length == 6) {
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1]);
+        }
+
+        else if(header.length == 5) {
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), parts[1]);
+        }
+
+        else {
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], parts[1]);
+        }
+  }
 
 	public void run()  {
 
-		System.out.println("Backup Service Enabled!");
+		    System.out.println("Backup Service Enabled!");
 
         connect_multicast();
 
@@ -123,13 +191,15 @@ public class Backup implements Runnable {
         }
         else {
           try {
-            byte[] incomingData = new byte[9366];
+            byte[] incomingData = new byte[64000];
 
             DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
 
             serverSocket.receive(incomingPacket);
 
-            writeBytesToFileNio(incomingData, "/Users/bernardo/Desktop/SDIS/small.jpg");
+            Message receivedMessage = treatData(incomingData);
+
+            writeBytesToFileNio(receivedMessage);
 
             System.out.println("File received and saved to HDD!");
           } catch (Exception ex) {

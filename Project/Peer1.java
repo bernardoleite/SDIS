@@ -4,7 +4,8 @@ import java.net.*;
 public class Peer1 {
 
    // final static String INET_ADDR = "224.0.0.3";
-    final static int mcast_port = 8888;
+    final static int mcast_backup_port = 8888;
+    final static int mcast_channel_port = 4444;
 
     private int port_number ;
     private String ip_address ;
@@ -15,14 +16,22 @@ public class Peer1 {
 
         System.setProperty("java.net.preferIPv4Stack", "true");
 
+        Chat backup_with_channel = new Chat();
+
+        //LONELY PEER
         if(command.equals("RECEIVER")){
-          Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, command));
+          Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "RECEIVER", backup_with_channel, port_number));
           multicast_backup.start();
+
+          Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RECEIVER", port_number, backup_with_channel));
+          multicast_channel.start();
         }
         //Backup Channel
-        if(command.equals("SEND")){
-            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_port, command, args[2], Integer.parseInt(args[3]), port_number));
+        if(command.equals("BACKUP")){
+            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel));
             multicast_backup.start();
+            Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "BACKUP", port_number, backup_with_channel));
+            multicast_channel.start();
         }
 
         //!!!Threads for each Service of Peer!!!
@@ -83,7 +92,7 @@ public class Peer1 {
             }
             else {
                 if (args[1].equals("BACKUP")){
-                    return "SEND";
+                    return "BACKUP";
                 }
                 else if (args[1].equals("RESTORE")){
                     return "RESTORE";

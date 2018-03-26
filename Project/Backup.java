@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Random;
 
 
 public class Backup implements Runnable {
@@ -18,7 +19,7 @@ public class Backup implements Runnable {
     private int port_number;
 
     //Name of this Thread
-	   private String name;
+	  private String name;
 
     //Ip and Port
     private InetAddress mcast_addr;
@@ -37,6 +38,12 @@ public class Backup implements Runnable {
     private byte[] data;
 
     private ArrayList<Chunk> chunksToSend = new ArrayList<Chunk>();
+
+    //Chat with Main Channel
+    private Chat backup_with_channel;
+
+    private Random rand = new Random();
+
 
     public void connect_multicast() {
 
@@ -84,12 +91,9 @@ public class Backup implements Runnable {
             buffer.flip();
 
             byte[] arr = new byte[buffer.remaining()];
-            System.out.println(buffer.remaining());
 
             buffer.get(arr, 0, arr.length);
-            System.out.println(file_name);
             String str = removeExtension(file_name);
-            System.out.println(file_name);
 
 
             chunksToSend.add(new Chunk(str, j++, replication_deg, arr));
@@ -104,14 +108,14 @@ public class Backup implements Runnable {
 
     }
 
-   public void send_file() {
+   public void send_chunk(int i) {
 
         try{
-          for(int i = 0; i < chunksToSend.size(); i++) {
             Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
+            System.out.println(message.toString().getBytes().length);
+            System.out.println("??????????????????????????????????");
             chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(chunk);
-          }
         }
         catch(Exception e){
             e.printStackTrace();
@@ -119,21 +123,24 @@ public class Backup implements Runnable {
     }
 
 
-	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number ){
-		    this.name = name;
+	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel){
+		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.file_name = file_name;
         this.replication_deg = replication_deg;
         this.command = command;
         this.port_number = port_number;
+        this.backup_with_channel = backup_with_channel;
 	}
 
-  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command){
-		    this.name = name;
+  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number){
+		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
+        this.backup_with_channel = backup_with_channel;
+        this.port_number = port_number;
 	}
 
   private void writeBytesToFileNio(Message receivedMessage) {
@@ -143,7 +150,6 @@ public class Backup implements Runnable {
 
             FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunNo() + ".txt");
 
-            System.out.println(receivedMessage.getBody());
             out.write(receivedMessage.getBody().getBytes());
             out.close();
         } catch (IOException e) {
@@ -154,24 +160,14 @@ public class Backup implements Runnable {
 
   private Message treatData(byte[] incomingData) {
         String string = new String(incomingData);
-        System.out.println();
-        System.out.println();
+
 
         String[] parts = string.split("\r\n\r\n");
 
         String[] header = parts[0].split(" ");
 
-        if(header.length == 6) {
-          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1]);
-        }
+        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1]);
 
-        else if(header.length == 5) {
-          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), parts[1]);
-        }
-
-        else {
-          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], parts[1]);
-        }
   }
 
 	public void run()  {
@@ -180,28 +176,57 @@ public class Backup implements Runnable {
 
         connect_multicast();
 
-        if(command.equals("SEND")) {
+        if(command.equals("BACKUP")) {
 
           read_file();
 
-          send_file();
-
-          System.out.println("Server sent packet with a chunck!");
-
+          for(int i = 0; i < chunksToSend.size(); i++) {
+            //check if replication degreee is equal to store messages on chat inbox
+            int j = 1000;
+            do {
+                backup_with_channel.clearInbox();
+                send_chunk(i);
+                try {
+                  Thread.sleep(j);
+                  System.out.println("J: " +j);
+                } catch (Exception e) {
+                  e.printStackTrace();
+                }
+                j = j*2;
+            } while(backup_with_channel.getInbox().size() < replication_deg);
+            System.out.println("Sending next CHUNK!");
+          }
+          System.out.println("All Chunks Sended");
+          System.exit(1);
         }
         else {
           try {
-            byte[] incomingData = new byte[64000];
+            while(true) {
+                byte[] incomingData = new byte[64000];
 
-            DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+                DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
 
-            serverSocket.receive(incomingPacket);
+                serverSocket.receive(incomingPacket);
 
-            Message receivedMessage = treatData(incomingData);
+                Message receivedMessage = treatData(incomingData);
+                backup_with_channel.access(false);
+                Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunNo());
+                System.out.println("SET Message");
+                backup_with_channel.setMessage(msg.toString());
+                backup_with_channel.access(true);
+                writeBytesToFileNio(receivedMessage);
+                backup_with_channel.setMessage("nada");
 
-            writeBytesToFileNio(receivedMessage);
+                System.out.println("Chunk received and saved to HDD!");
 
-            System.out.println("File received and saved to HDD!");
+                try {
+                  int j = rand.nextInt(400);
+
+                  Thread.sleep(j);
+                } catch (Exception e) {
+                  e.printStackTrace();
+                }
+            }
           } catch (Exception ex) {
               ex.printStackTrace();
           }

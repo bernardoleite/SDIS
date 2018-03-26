@@ -8,6 +8,7 @@ public class Message {
     private int replication_deg;
     private String body;
 
+//PUTCHUNK
   public Message(String command, int version, String senderId, String fileId, int chunkNo, int replication_deg, String body){
     this.command = command;
     this.senderId = senderId;
@@ -35,6 +36,7 @@ public class Message {
     return body;
   }
 
+//CHUNK
   public Message(String command, int version, String senderId, String fileId, int chunkNo, String body){
     this.command = command;
     this.senderId = senderId;
@@ -46,29 +48,48 @@ public class Message {
 
   }
 
-  public Message(String command, int version, String senderId, String fileId, String body){
+//DELETE
+    public Message(String command, int version, String senderId, String fileId){
     this.command = command;
+    this.version = version;
     this.senderId = senderId;
     this.fileId = fileId;
     this.chunkNo = -1;
     this.replication_deg = -1;
-    this.body = body;
-    this.version = version;
+  }
 
+//STORED RESTORE RECLAIM
+    public Message(String command, int version, String senderId, String fileId, int chunkNo){
+    this.command = command;
+    this.version = version;
+    this.senderId = senderId;
+    this.fileId = fileId;
+    this.chunkNo = chunkNo;
+    this.replication_deg = -1;
+    this.body = "";
   }
 
   public String toString() {
     if(replication_deg == -1) {
+      //DELETE
       if(chunkNo == -1) {
-        return command + " " + version + " " + senderId + " " + fileId + "\r\n\r\n" + body;
+        return command + " " + version + " " + senderId + " " + fileId + "\r\n\r\n";
       }
       else {
-        return command + " " + version + " " + senderId + " " + fileId + " " + chunkNo + "\r\n\r\n" + body;
+        //STORED RESTORE RECLAIM
+        if(body.equals("")) {
+          return command + " " + version + " " + senderId + " " + fileId + " " + chunkNo + "\r\n\r\n";
+        }
+        //CHUNK
+        else {
+          return command + " " + version + " " + senderId + " " + fileId +  " " + chunkNo + "\r\n\r\n" + body; 
+        }
       }
-    } else {
+    }
+    else {
+      //PUTCHUNK
       return command + " " + version + " " + senderId + " " + fileId + " " + chunkNo + " " + replication_deg + "\r\n\r\n" + body;
     }
   }
-
 
 }

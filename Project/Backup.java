@@ -45,6 +45,13 @@ public class Backup implements Runnable {
     private Random rand = new Random();
 
 
+    //store information
+    private ArrayList<FileInfo> files;
+
+
+    private String file_id;
+
+
     public void connect_multicast() {
 
         try{
@@ -93,10 +100,9 @@ public class Backup implements Runnable {
             byte[] arr = new byte[buffer.remaining()];
 
             buffer.get(arr, 0, arr.length);
-            String str = removeExtension(file_name);
 
 
-            chunksToSend.add(new Chunk(str, j++, replication_deg, arr));
+            chunksToSend.add(new Chunk(file_id, j++, replication_deg, arr));
             buffer.clear(); // do something with the data and clear/compact it.
         }
         inChannel.close();
@@ -123,7 +129,7 @@ public class Backup implements Runnable {
     }
 
 
-	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel){
+	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayList<FileInfo> files){
 		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
@@ -132,6 +138,7 @@ public class Backup implements Runnable {
         this.command = command;
         this.port_number = port_number;
         this.backup_with_channel = backup_with_channel;
+        this.files = files;
 	}
 
   public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number){
@@ -158,6 +165,11 @@ public class Backup implements Runnable {
 
   }
 
+    private void codify_fileId() {
+        file_id = removeExtension(file_name);
+    }
+
+
   private Message treatData(byte[] incomingData) {
         String string = new String(incomingData);
 
@@ -180,6 +192,10 @@ public class Backup implements Runnable {
 
           read_file();
 
+          codify_fileId();
+
+          files.add(new FileInfo(file_name,file_id, replication_deg ));
+
           for(int i = 0; i < chunksToSend.size(); i++) {
             //check if replication degreee is equal to store messages on chat inbox
             int j = 1000;
@@ -194,9 +210,20 @@ public class Backup implements Runnable {
                 }
                 j = j*2;
             } while(backup_with_channel.getInbox().size() < replication_deg);
+            files.get(files.size()-1).addChunkInfo(new ChunkInfo(i+1, backup_with_channel.getInbox().size(), chunksToSend.get(i).getBody().length));
             System.out.println("Sending next CHUNK!");
           }
           System.out.println("All Chunks Sended");
+
+          System.out.println(files.get(0).getFileId());
+
+          System.out.println(files.get(0).getChunksInfo().size());
+
+          for(int i = 0; i < files.get(0).getChunksInfo().size(); i++) {
+            System.out.println(files.get(0).getChunksInfo().get(i).getPerceivedReplicationDeg());
+          
+          }
+
           System.exit(1);
         }
         else {
@@ -209,6 +236,7 @@ public class Backup implements Runnable {
                 serverSocket.receive(incomingPacket);
 
                 Message receivedMessage = treatData(incomingData);
+
         
                 Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunNo());
 
@@ -220,13 +248,6 @@ public class Backup implements Runnable {
 
                 System.out.println("Chunk received and saved to HDD!");
 
-                try {
-                  int j = rand.nextInt(400);
-
-                  Thread.sleep(j);
-                } catch (Exception e) {
-                  e.printStackTrace();
-                }
             }
           } catch (Exception ex) {
               ex.printStackTrace();

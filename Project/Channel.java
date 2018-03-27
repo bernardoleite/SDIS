@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Random;
 
 
 public class Channel implements Runnable {
@@ -38,6 +39,9 @@ public class Channel implements Runnable {
     private Chat backup_with_channel;
 
 
+    private Random rand = new Random();
+
+
     public class Backup_CheckMsg implements Runnable {
 
         String threadName;
@@ -53,6 +57,14 @@ public class Channel implements Runnable {
                     //Removed print
                     if(!backup_with_channel.getMessage().equals("nada"))
                         break;
+                }
+
+                try {
+                  int j = rand.nextInt(400);
+
+                  Thread.sleep(j);
+                } catch (Exception e) {
+                  e.printStackTrace();
                 }
                 send_Message(backup_with_channel.getMessage());
 
@@ -126,7 +138,6 @@ public class Channel implements Runnable {
         Thread backup_check_message = new Thread(new Backup_CheckMsg("backup_check_message"));
         backup_check_message.start();
 
- 
 
         }
         else if (command.equals("BACKUP")) {
@@ -137,6 +148,7 @@ public class Channel implements Runnable {
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 serverSocket.receive(incomingPacket);
+
 
                 //add message to array
                 backup_with_channel.addMsgInbox(new String(incomingData));

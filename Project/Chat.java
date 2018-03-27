@@ -5,7 +5,7 @@ class Chat {
    private volatile String message = "nada";
 
    //array of inbox messages
-   ArrayList<String> inbox = new ArrayList<String>();
+   private volatile ArrayList<String> inbox = new ArrayList<String>();
 
 
    public String getMessage() {
@@ -17,8 +17,8 @@ class Chat {
    }
 
    public void addMsgInbox(String message) {
-   		System.out.println("Inbox: " + inbox.size());
    		inbox.add(message);
+         System.out.println("Inbox: " + inbox.size());
    }
 
    public void clearInbox() {

@@ -1,3 +1,4 @@
+import java.util.*;
 import java.io.*;
 import java.net.*;
 
@@ -11,6 +12,10 @@ public class Peer1 {
     private String ip_address ;
 
     private InetAddress mcast_addr;
+
+    //store information
+    private ArrayList<FileInfo> files = new ArrayList<FileInfo>();
+
 
     public void run(String[] args, String command) throws Exception {
 
@@ -28,7 +33,7 @@ public class Peer1 {
         }
         //Backup Channel
         if(command.equals("BACKUP")){
-            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel));
+            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel, files));
             multicast_backup.start();
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "BACKUP", port_number, backup_with_channel));
             multicast_channel.start();

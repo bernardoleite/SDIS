@@ -2,19 +2,14 @@ import java.util.*;
 
 class Chat {
 
-   String message = "nada";
+   private volatile String message = "nada";
 
    //array of inbox messages
    ArrayList<String> inbox = new ArrayList<String>();
 
 
-   boolean canI = true;
-
    public String getMessage() {
-   		if(canI)
-      		return message;
-      	else
-      		return "nada";
+      	return message;
    }
 
    public ArrayList<String> getInbox() {
@@ -32,10 +27,6 @@ class Chat {
 
    public void setMessage(String msg) {
       this.message = msg;
-   }
-
-   public void access(boolean b) {
-   	this.canI = b;
    }
 
 }

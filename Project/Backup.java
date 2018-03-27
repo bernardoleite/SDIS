@@ -209,12 +209,13 @@ public class Backup implements Runnable {
                 serverSocket.receive(incomingPacket);
 
                 Message receivedMessage = treatData(incomingData);
-                backup_with_channel.access(false);
+        
                 Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunNo());
-                System.out.println("SET Message");
+
                 backup_with_channel.setMessage(msg.toString());
-                backup_with_channel.access(true);
+            
                 writeBytesToFileNio(receivedMessage);
+
                 backup_with_channel.setMessage("nada");
 
                 System.out.println("Chunk received and saved to HDD!");

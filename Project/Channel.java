@@ -101,7 +101,7 @@ public class Channel implements Runnable {
             while(true){
 
                 while(true){
-                  System.out.println();
+                    //Removed print
                     if(!backup_with_channel.getMessage().equals("nada"))
                         break;
                 }

@@ -38,6 +38,43 @@ public class Channel implements Runnable {
     private Chat backup_with_channel;
 
 
+    public class Backup_CheckMsg implements Runnable {
+
+        String threadName;
+
+        public Backup_CheckMsg(String name){
+            threadName = name;
+        }
+
+        public void run(){
+            while(true){
+
+                while(true){
+                    //Removed print
+                    if(!backup_with_channel.getMessage().equals("nada"))
+                        break;
+                }
+                send_Message(backup_with_channel.getMessage());
+
+            }
+        }
+
+    public void send_Message(String message){
+        try{
+
+            System.out.println("/////////////////////////////");
+            packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
+            serverSocket.send(packetToSend);
+
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    }
+
+
 
 
 
@@ -76,21 +113,6 @@ public class Channel implements Runnable {
         this.backup_with_channel = backup_with_channel;
 	}
 
-    public void send_Message(String message){
-        try{
-
-            System.out.println("/////////////////////////////");
-            packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
-            serverSocket.send(packetToSend);
-
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-    }
-
-
-
 	public void run()  {
 
         connect_multicast();
@@ -98,16 +120,14 @@ public class Channel implements Runnable {
         System.out.println("Main Channel Service Enabled!");
 
         if(command.equals("RECEIVER")) {
-            while(true){
 
-                while(true){
-                    //Removed print
-                    if(!backup_with_channel.getMessage().equals("nada"))
-                        break;
-                }
-                send_Message(backup_with_channel.getMessage());
 
-            }
+        //Thread Responsible to, in case of Backup, check Message String and Send Message
+        Thread backup_check_message = new Thread(new Backup_CheckMsg("backup_check_message"));
+        backup_check_message.start();
+
+ 
+
         }
         else if (command.equals("BACKUP")) {
 

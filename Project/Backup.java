@@ -35,8 +35,7 @@ public class Backup implements Runnable {
     //A packet(chunck)
     private DatagramPacket chunk;
 
-    private byte[] data;
-
+    //total chunks of a file
     private ArrayList<Chunk> chunksToSend = new ArrayList<Chunk>();
 
     //Chat with Main Channel
@@ -190,9 +189,9 @@ public class Backup implements Runnable {
 
         if(command.equals("BACKUP")) {
 
-          read_file();
-
           codify_fileId();
+
+          read_file();
 
           files.add(new FileInfo(file_name,file_id, replication_deg ));
 

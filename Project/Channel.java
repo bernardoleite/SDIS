@@ -134,7 +134,7 @@ public class Channel implements Runnable {
         if(command.equals("RECEIVER")) {
 
 
-        //Thread Responsible to, in case of Backup, check Message String and Send Message
+        //Thread Responsible to, in case of Backup, check Message String and Send Message ----- BACKUP
         Thread backup_check_message = new Thread(new Backup_CheckMsg("backup_check_message"));
         backup_check_message.start();
 
@@ -159,6 +159,10 @@ public class Channel implements Runnable {
           } catch (Exception ex) {
               ex.printStackTrace();
           }
+        }
+        else if (command.equals("RESTORE")) {
+            
+                
         }
 
 

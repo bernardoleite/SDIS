@@ -4,9 +4,9 @@ import java.net.*;
 
 public class Peer1 {
 
-   // final static String INET_ADDR = "224.0.0.3";
     final static int mcast_backup_port = 8888;
     final static int mcast_channel_port = 4444;
+    final static int mcast_restore_port = 5555;
 
     private int port_number ;
     private String ip_address ;
@@ -21,7 +21,11 @@ public class Peer1 {
 
         System.setProperty("java.net.preferIPv4Stack", "true");
 
+        //chat used for BACKUP-MAIN_CHANNEL communication
         Chat backup_with_channel = new Chat();
+
+        //chat used for RESTORE-MAIN_CHANNEL communication
+        Chat restore_with_channel = new Chat();
 
         //LONELY PEER
         if(command.equals("RECEIVER")){
@@ -38,6 +42,15 @@ public class Peer1 {
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "BACKUP", port_number, backup_with_channel));
             multicast_channel.start();
         }
+        if(command.equals("RESTORE")){
+
+            Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RESTORE", port_number, backup_with_channel));
+            multicast_channel.start();
+
+            Thread multicast_restore = new Thread(new Restore("IP:PORT", mcast_addr, mcast_restore_port, "RESTORE", args[2], port_number, restore_with_channel, files));
+            multicast_restore.start();           
+        }
+
 
         //!!!Threads for each Service of Peer!!!
 /*

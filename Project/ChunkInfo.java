@@ -2,7 +2,7 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
-public class ChunkInfo{
+public class ChunkInfo implements Serializable{
 
 	private int Id;
 	private int PerceivedReplicationDeg;

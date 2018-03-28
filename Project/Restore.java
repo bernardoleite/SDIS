@@ -42,7 +42,7 @@ public class Restore implements Runnable {
     private Random rand = new Random();
 
     //files whose had been BACK UP
-    private ArrayList<FileInfo> files;
+    private ArrayOfFiles currentFiles;
 
     //array of GETCHUNKs used to send to Chat
     private ArrayList<String> getchunks;
@@ -60,7 +60,7 @@ public class Restore implements Runnable {
         }
     }
 
-	public Restore(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int port_number, Chat restore_with_channel, ArrayList<FileInfo> files){
+	public Restore(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int port_number, Chat restore_with_channel, ArrayOfFiles currentFiles){
 		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
@@ -68,19 +68,19 @@ public class Restore implements Runnable {
         this.file_name = file_name;
         this.port_number = port_number;
         this.restore_with_channel = restore_with_channel;
-        this.files = files;
+        this.currentFiles = currentFiles;
 	}
 
     public void make_GETCHUNK_array(){
 
         getchunks = new ArrayList<String>();
 
-        for( int i = 0 ; i < files.size(); i++){
+        for( int i = 0 ; i < currentFiles.files.size(); i++){
 
-            if(files.get(i).getFileId().equals("FileId Pretendido")){
-                for(int j = 0; j < files.get(i).getChunksInfo().size(); j++)
+            if(currentFiles.files.get(i).getFileId().equals("FileId Pretendido")){
+                for(int j = 0; j < currentFiles.files.get(i).getChunksInfo().size(); j++)
                 {   
-                Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), files.get(i).getFileId(), files.get(i).getChunksInfo().get(j).getId());
+                Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), currentFiles.files.get(i).getFileId(), currentFiles.files.get(i).getChunksInfo().get(j).getId());
                 getchunks.add(msg.toString());
                 }
             } 

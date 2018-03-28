@@ -14,8 +14,7 @@ public class Peer1 {
     private InetAddress mcast_addr;
 
     //store information
-    private ArrayList<FileInfo> files = new ArrayList<FileInfo>();
-
+    private ArrayOfFiles currentFiles = new ArrayOfFiles();
 
     public void run(String[] args, String command) throws Exception {
 
@@ -37,7 +36,7 @@ public class Peer1 {
         }
         //Backup Channel
         if(command.equals("BACKUP")){
-            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel, files));
+            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel, currentFiles));
             multicast_backup.start();
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "BACKUP", port_number, backup_with_channel));
             multicast_channel.start();
@@ -47,7 +46,7 @@ public class Peer1 {
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RESTORE", port_number, backup_with_channel));
             multicast_channel.start();
 
-            Thread multicast_restore = new Thread(new Restore("IP:PORT", mcast_addr, mcast_restore_port, "RESTORE", args[2], port_number, restore_with_channel, files));
+            Thread multicast_restore = new Thread(new Restore("IP:PORT", mcast_addr, mcast_restore_port, "RESTORE", args[2], port_number, restore_with_channel, currentFiles));
             multicast_restore.start();           
         }
 

@@ -2,7 +2,7 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
-public class FileInfo{
+public class FileInfo implements Serializable {
 
 	private String pathname;
 	private String fileId;

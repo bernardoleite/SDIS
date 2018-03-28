@@ -44,8 +44,10 @@ public class Backup implements Runnable {
     private Random rand = new Random();
 
 
-    //store information
-    private ArrayList<FileInfo> files;
+
+    //save Files of backup
+    private ArrayOfFiles currentFiles;
+    String filebin;
 
 
     private String file_id;
@@ -128,7 +130,7 @@ public class Backup implements Runnable {
     }
 
 
-	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayList<FileInfo> files){
+	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
 		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
@@ -137,7 +139,7 @@ public class Backup implements Runnable {
         this.command = command;
         this.port_number = port_number;
         this.backup_with_channel = backup_with_channel;
-        this.files = files;
+        this.currentFiles = currentFiles;
 	}
 
   public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number){
@@ -181,6 +183,37 @@ public class Backup implements Runnable {
 
   }
 
+  public void serialize_Object(){
+
+    filebin = "data.bin";
+    try{
+    ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(filebin));
+    os.writeObject(currentFiles);
+    os.close();
+    }
+    catch(Exception e)
+    {
+        e.printStackTrace();
+    }
+
+    System.out.println("aqui chega");
+}
+
+  public void deserialize_Object(){
+
+    try{
+        ObjectInputStream is = new ObjectInputStream(new FileInputStream(filebin));
+        ArrayOfFiles novo = (ArrayOfFiles)is.readObject();
+        is.close();
+        System.out.println(novo.files.get(0).getFileId());
+    }
+    catch(Exception e){
+        e.printStackTrace();
+    }
+
+}
+
+
 	public void run()  {
 
 		    System.out.println("Backup Service Enabled!");
@@ -190,10 +223,9 @@ public class Backup implements Runnable {
         if(command.equals("BACKUP")) {
 
           codify_fileId();
-
           read_file();
 
-          files.add(new FileInfo(file_name,file_id, replication_deg ));
+          currentFiles.files.add(new FileInfo(file_name,file_id, replication_deg ));
 
           for(int i = 0; i < chunksToSend.size(); i++) {
             //check if replication degreee is equal to store messages on chat inbox
@@ -209,22 +241,17 @@ public class Backup implements Runnable {
                 }
                 j = j*2;
             } while(backup_with_channel.getInbox().size() < replication_deg);
-            files.get(files.size()-1).addChunkInfo(new ChunkInfo(i+1, backup_with_channel.getInbox().size(), chunksToSend.get(i).getBody().length));
+            currentFiles.files.get(currentFiles.files.size()-1).addChunkInfo(new ChunkInfo(i+1, backup_with_channel.getInbox().size(), chunksToSend.get(i).getBody().length));
             System.out.println("Sending next CHUNK!");
           }
           System.out.println("All Chunks Sended");
 
-          System.out.println(files.get(0).getFileId());
-
-          System.out.println(files.get(0).getChunksInfo().size());
-
-          for(int i = 0; i < files.get(0).getChunksInfo().size(); i++) {
-            System.out.println(files.get(0).getChunksInfo().get(i).getPerceivedReplicationDeg());
-          
-          }
+          serialize_Object();
+          deserialize_Object();
 
           System.exit(1);
-        }
+          }
+
         else {
           try {
             while(true) {

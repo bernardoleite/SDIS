@@ -48,6 +48,38 @@ public class Restore implements Runnable {
     private ArrayList<String> getchunks;
 
 
+    private boolean receivedChunk = false;
+
+    private Message getchunkmsg;
+
+    public class Listener_Restore implements Runnable {
+
+        String threadName;
+
+        public Listener_Restore(){
+        }
+
+        public void run(){
+          try {
+            while(true) {
+                byte[] incomingData = new byte[64000];
+
+                DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+                serverSocket.receive(incomingPacket);
+
+                Message receivedMessage = treatData(incomingData);
+
+                if(getchunkmsg != null && receivedMessage.getCommand().equals("CHUNK") && getchunkmsg.getFileId().equals(receivedMessage.getFileId()) && getchunkmsg.getChunkNo() == receivedMessage.getChunkNo()) {
+                    receivedChunk = true;
+                }
+
+            }
+          } catch (Exception ex) {
+              ex.printStackTrace();
+          }
+        }
+    }
+
     public void connect_multicast() {
 
         try{
@@ -96,6 +128,17 @@ public class Restore implements Runnable {
         restore_with_channel.setGetChunks(getchunks);
     }
 
+    private Message treatData(byte[] incomingData) {
+          String string = new String(incomingData);
+
+
+          String[] parts = string.split("\r\n\r\n");
+
+          String[] header = parts[0].split(" ");
+
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), parts[1]);
+
+    }
 
 	public void run() {
 
@@ -111,7 +154,21 @@ public class Restore implements Runnable {
 
             //send previous array to Chat
             send_GETCHUNK_array_toChat();
+            try {
+              while(true) {
+                byte[] incomingData = new byte[64000];
 
+                DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+
+                serverSocket.receive(incomingPacket);
+
+                Message receivedMessage = treatData(incomingData);
+
+                System.out.println(receivedMessage.toString());
+              }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
 
             System.out.println("Ready to Receive the Chunks I requested");
 
@@ -119,6 +176,18 @@ public class Restore implements Runnable {
 
         //I am PEER-RECEIVER and I will send a requested chunk through here
         else if (command.equals("RECEIVER")) {
+
+            Thread listener_restore = new Thread(new Listener_Restore());
+            listener_restore.start();
+/*
+            while(true) {
+              //ve se no chat getChunkmsg
+              //atualiza getchunkmsg e receivedChunk
+              //sleep
+              //se receivedChunk == false envia chunk
+              //senao nao faz nada
+              //set chat msg to nada
+            }*/
 
             System.out.println("Ready to Receive in Restore");
         }

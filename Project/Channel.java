@@ -43,7 +43,6 @@ public class Channel implements Runnable {
 
     private ArrayOfFiles currentFiles;
 
-    private boolean receivedChunk = false;
 
     public class Listener_Channel implements Runnable {
 

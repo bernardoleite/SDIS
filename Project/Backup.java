@@ -47,6 +47,7 @@ public class Backup implements Runnable {
 
     //save Files of backup
     private ArrayOfFiles currentFiles;
+
     String filebin;
 
 
@@ -118,7 +119,7 @@ public class Backup implements Runnable {
    public void send_chunk(int i) {
 
         try{
-            Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
+            Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunkNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
             System.out.println(message.toString().getBytes().length);
             System.out.println("??????????????????????????????????");
             chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
@@ -142,21 +143,24 @@ public class Backup implements Runnable {
         this.currentFiles = currentFiles;
 	}
 
-  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number){
+  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number, ArrayOfFiles currentFiles){
 		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
         this.backup_with_channel = backup_with_channel;
         this.port_number = port_number;
+        this.currentFiles = currentFiles;
+
 	}
 
   private void writeBytesToFileNio(Message receivedMessage) {
 
         try {
-            Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunNo() + ".txt");
 
-            FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunNo() + ".txt");
+            Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
+
+            FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
 
             out.write(receivedMessage.getBody().getBytes());
             out.close();
@@ -241,7 +245,7 @@ public class Backup implements Runnable {
                 }
                 j = j*2;
             } while(backup_with_channel.getInbox().size() < replication_deg);
-            currentFiles.files.get(currentFiles.files.size()-1).addChunkInfo(new ChunkInfo(i+1, backup_with_channel.getInbox().size(), chunksToSend.get(i).getBody().length));
+            currentFiles.files.get(currentFiles.files.size()-1).addChunkInfo(new ChunkInfo(file_id + "." + Integer.toString(i+1), backup_with_channel.getInbox().size(), chunksToSend.get(i).getBody().length));
             System.out.println("Sending next CHUNK!");
           }
           System.out.println("All Chunks Sended");
@@ -263,11 +267,12 @@ public class Backup implements Runnable {
 
                 Message receivedMessage = treatData(incomingData);
 
-        
-                Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunNo());
+                currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().getBytes().length));
+
+                Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
 
                 backup_with_channel.setMessage(msg.toString());
-            
+
                 writeBytesToFileNio(receivedMessage);
 
                 backup_with_channel.setMessage("nada");

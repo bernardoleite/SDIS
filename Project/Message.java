@@ -20,11 +20,19 @@ public class Message {
 
   }
 
+  public String getCommand() {
+    return command;
+  }
+
+  public String getSenderId() {
+    return senderId;
+  }
+
   public String getFileId() {
     return fileId;
   }
 
-  public int getChunNo() {
+  public int getChunkNo() {
     return chunkNo;
   }
 
@@ -49,7 +57,7 @@ public class Message {
   }
 
 //DELETE
-    public Message(String command, int version, String senderId, String fileId){
+  public Message(String command, int version, String senderId, String fileId){
     this.command = command;
     this.version = version;
     this.senderId = senderId;
@@ -82,7 +90,7 @@ public class Message {
         }
         //CHUNK
         else {
-          return command + " " + version + " " + senderId + " " + fileId +  " " + chunkNo + "\r\n\r\n" + body; 
+          return command + " " + version + " " + senderId + " " + fileId +  " " + chunkNo + "\r\n\r\n" + body;
         }
       }
     }

@@ -41,6 +41,43 @@ public class Channel implements Runnable {
 
     private Random rand = new Random();
 
+    private ArrayOfFiles currentFiles;
+
+
+    public class Listener_Channel implements Runnable {
+
+        String threadName;
+
+        public Listener_Channel(){
+        }
+
+        public void run(){
+          try {
+            while(true) {
+                byte[] incomingData = new byte[64000];
+
+                DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+                serverSocket.receive(incomingPacket);
+
+                Message receivedMessage = treatData(incomingData);
+                System.out.println(receivedMessage.toString());
+                int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
+
+                if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number && i != -1) {
+                  currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
+                }
+
+                for(int j = 0; j < currentFiles.chunksStore.size(); j++) {
+                  System.out.println(currentFiles.chunksStore.get(j).getId());
+                  System.out.println(currentFiles.chunksStore.get(j).getPerceivedReplicationDeg());
+                  System.out.println(currentFiles.chunksStore.get(j).getSize());
+                }
+            }
+          } catch (Exception ex) {
+              ex.printStackTrace();
+          }
+        }
+    }
 
     public class Backup_CheckMsg implements Runnable {
 
@@ -59,6 +96,8 @@ public class Channel implements Runnable {
                         break;
                 }
 
+
+                send_Message(backup_with_channel.getMessage());
                 try {
                   int j = rand.nextInt(400);
 
@@ -66,7 +105,6 @@ public class Channel implements Runnable {
                 } catch (Exception e) {
                   e.printStackTrace();
                 }
-                send_Message(backup_with_channel.getMessage());
 
             }
         }
@@ -116,14 +154,25 @@ public class Channel implements Runnable {
   }
 
 
-	public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel){
+	public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
 		this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
         this.port_number = port_number;
         this.backup_with_channel = backup_with_channel;
+        this.currentFiles = currentFiles;
+
 	}
+
+  public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel){
+    this.name = name;
+        this.mcast_addr = mcast_addr;
+        this.mcast_port = mcast_port;
+        this.command = command;
+        this.port_number = port_number;
+        this.backup_with_channel = backup_with_channel;
+  }
 
 	public void run()  {
 
@@ -138,6 +187,8 @@ public class Channel implements Runnable {
         Thread backup_check_message = new Thread(new Backup_CheckMsg("backup_check_message"));
         backup_check_message.start();
 
+        Thread listener_channel = new Thread(new Listener_Channel());
+        listener_channel.start();
 
         }
         else if (command.equals("BACKUP")) {
@@ -161,8 +212,8 @@ public class Channel implements Runnable {
           }
         }
         else if (command.equals("RESTORE")) {
-            
-                
+
+
         }
 
 

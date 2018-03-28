@@ -4,18 +4,18 @@ import java.net.*;
 
 public class ChunkInfo implements Serializable{
 
-	private int Id;
+	private String Id;
 	private int PerceivedReplicationDeg;
 	private int size;
 
 
-	public ChunkInfo(int Id, int PerceivedReplicationDeg, int size){
+	public ChunkInfo(String Id, int PerceivedReplicationDeg, int size){
 		this.Id = Id;
 		this.PerceivedReplicationDeg = PerceivedReplicationDeg;
 		this.size = size;
 	}
 
-	public int getId(){
+	public String getId(){
 		return Id;
 	}
 
@@ -26,5 +26,9 @@ public class ChunkInfo implements Serializable{
 	public int getSize(){
 		return size;
 	}
-	
+
+
+	public void incrementPerceivedReplicationDeg() {
+		PerceivedReplicationDeg++;
+	}
 }

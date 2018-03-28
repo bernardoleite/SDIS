@@ -79,11 +79,12 @@ public class Restore implements Runnable {
 
             if(currentFiles.files.get(i).getFileId().equals("FileId Pretendido")){
                 for(int j = 0; j < currentFiles.files.get(i).getChunksInfo().size(); j++)
-                {   
-                Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), currentFiles.files.get(i).getFileId(), currentFiles.files.get(i).getChunksInfo().get(j).getId());
+                {
+                  String[] parts = currentFiles.files.get(i).getChunksInfo().get(j).getId().split(".");
+                Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), parts[0], Integer.parseInt(parts[1]));
                 getchunks.add(msg.toString());
                 }
-            } 
+            }
 
         }
     }

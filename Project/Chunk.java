@@ -16,7 +16,7 @@ public class Chunk {
     return fileId;
   }
 
-  public int getChunNo() {
+  public int getChunkNo() {
     return chunkNo;
   }
 

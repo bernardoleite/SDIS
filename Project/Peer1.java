@@ -28,10 +28,10 @@ public class Peer1 {
 
         //LONELY PEER
         if(command.equals("RECEIVER")){
-          Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "RECEIVER", backup_with_channel, port_number));
+          Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "RECEIVER", backup_with_channel, port_number, currentFiles));
           multicast_backup.start();
 
-          Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RECEIVER", port_number, backup_with_channel));
+          Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RECEIVER", port_number, backup_with_channel, currentFiles));
           multicast_channel.start();
         }
         //Backup Channel
@@ -47,7 +47,7 @@ public class Peer1 {
             multicast_channel.start();
 
             Thread multicast_restore = new Thread(new Restore("IP:PORT", mcast_addr, mcast_restore_port, "RESTORE", args[2], port_number, restore_with_channel, currentFiles));
-            multicast_restore.start();           
+            multicast_restore.start();
         }
 
 

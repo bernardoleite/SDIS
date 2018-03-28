@@ -25,9 +25,16 @@ public class FileInfo implements Serializable {
 		return chunksInfo;
 	}
 
+	public String getPathName(){
+		return pathname;
+	}
+
 	public String getFileId(){
 		return fileId;
 	}
 
-	
+	public int getDesiredReplicationDeg(){
+		return desiredReplicationDeg;
+	}
+
 }

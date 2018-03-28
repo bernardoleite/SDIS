@@ -60,8 +60,8 @@ public class Restore implements Runnable {
         }
     }
 
-	public Restore(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int port_number, Chat restore_with_channel, ArrayOfFiles currentFiles){
-		this.name = name;
+	public Restore(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int port_number, Chat restore_with_channel, ArrayOfFiles currentFiles) {
+		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
@@ -71,30 +71,33 @@ public class Restore implements Runnable {
         this.currentFiles = currentFiles;
 	}
 
-    public void make_GETCHUNK_array(){
+    public void make_GETCHUNK_array() {
 
         getchunks = new ArrayList<String>();
 
         for( int i = 0 ; i < currentFiles.files.size(); i++){
 
-            if(currentFiles.files.get(i).getFileId().equals("FileId Pretendido")){
-                for(int j = 0; j < currentFiles.files.get(i).getChunksInfo().size(); j++)
-                {
-                  String[] parts = currentFiles.files.get(i).getChunksInfo().get(j).getId().split(".");
-                Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), parts[0], Integer.parseInt(parts[1]));
-                getchunks.add(msg.toString());
+            if(currentFiles.files.get(i).getPathName().equals(file_name)) {
+                for(int j = 0; j < currentFiles.files.get(i).getChunksInfo().size(); j++) {
+
+                  String[] parts = currentFiles.files.get(i).getChunksInfo().get(j).getId().split("\\.");
+
+                  Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), parts[0], Integer.parseInt(parts[1]));
+                  System.out.println(msg.toString());
+                  System.out.println();
+                  getchunks.add(msg.toString());
                 }
             }
 
         }
     }
 
-    public void send_GETCHUNK_array_toChat(){
+    public void send_GETCHUNK_array_toChat() {
         restore_with_channel.setGetChunks(getchunks);
     }
 
 
-	public void run()  {
+	public void run() {
 
         connect_multicast();
 

@@ -16,7 +16,36 @@ public class Peer1 {
     //store information
     private ArrayOfFiles currentFiles = new ArrayOfFiles();
 
+    private String filebin = "data.bin";
+
+
+    public void deserialize_Object(){
+
+      try{
+          ObjectInputStream is = new ObjectInputStream(new FileInputStream(filebin));
+          currentFiles = (ArrayOfFiles)is.readObject();
+          is.close();
+      }
+      catch(Exception e){
+          e.printStackTrace();
+      }
+
+  }
+
     public void run(String[] args, String command) throws Exception {
+
+      /*  se existe data.bin
+          deserialize currentFiles
+        senao
+          criar novo*/
+
+        File f = new File("data.bin");
+        if(f.exists() && !f.isDirectory()) {
+          deserialize_Object();
+        }
+        else {
+          currentFiles = new ArrayOfFiles();
+        }
 
         System.setProperty("java.net.preferIPv4Stack", "true");
 
@@ -27,7 +56,7 @@ public class Peer1 {
         Chat restore_with_channel = new Chat();
 
         //LONELY PEER
-        if(command.equals("RECEIVER")){
+        if(command.equals("RECEIVER")) {
           Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "RECEIVER", backup_with_channel, port_number, currentFiles));
           multicast_backup.start();
 
@@ -35,13 +64,13 @@ public class Peer1 {
           multicast_channel.start();
         }
         //Backup Channel
-        if(command.equals("BACKUP")){
+        if(command.equals("BACKUP")) {
             Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel, currentFiles));
             multicast_backup.start();
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "BACKUP", port_number, backup_with_channel));
             multicast_channel.start();
         }
-        if(command.equals("RESTORE")){
+        if(command.equals("RESTORE")) {
 
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RESTORE", port_number, backup_with_channel));
             multicast_channel.start();
@@ -50,6 +79,34 @@ public class Peer1 {
             multicast_restore.start();
         }
 
+        if(command.equals("STATE")) {
+          if(currentFiles.files.size() > 0)
+            System.out.println("Files Backup:");
+          for(int i = 0; i < currentFiles.files.size(); i++) {
+            System.out.println("File:");
+            System.out.println("Pathname: " + currentFiles.files.get(i).getPathName());
+            System.out.println("FileId: " + currentFiles.files.get(i).getFileId());
+            System.out.println("Desired Replication Degree: " + currentFiles.files.get(i).getDesiredReplicationDeg());
+            System.out.println();
+            System.out.println("Chunks:");
+            for(int j = 0; j < currentFiles.files.get(i).getChunksInfo().size(); j++) {
+              System.out.println("Id: " + currentFiles.files.get(i).getChunksInfo().get(j).getId());
+              System.out.println("Perceived Replication Degree: " + currentFiles.files.get(i).getChunksInfo().get(j).getPerceivedReplicationDeg());
+              System.out.println();
+            }
+          }
+          System.out.println();
+          if(currentFiles.chunksStore.size() > 0)
+            System.out.println("Chunks Stored:");
+          for(int i = 0; i < currentFiles.chunksStore.size(); i++) {
+            System.out.println("Chunk:");
+            System.out.println();
+            System.out.println("Id: " + currentFiles.chunksStore.get(i).getId());
+            System.out.println("Size: " + currentFiles.chunksStore.get(i).getSize());
+            System.out.println("Perceived Replication Degree: " + currentFiles.chunksStore.get(i).getPerceivedReplicationDeg());
+            System.out.println();
+          }
+        }
 
         //!!!Threads for each Service of Peer!!!
 /*
@@ -76,7 +133,12 @@ public class Peer1 {
         {
             Peer1 peer = new Peer1();
             String command = peer.checkCommands(args);
-            peer.run(args, command);
+            if(!command.equals("Error")) {
+              peer.run(args, command);
+            }
+            else {
+              System.out.println("Invalid Args!!!");
+            }
         }
         catch (Exception e)
         {

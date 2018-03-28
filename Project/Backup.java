@@ -8,7 +8,9 @@ import java.nio.file.Path;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Random;
-
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 
 public class Backup implements Runnable {
 
@@ -120,8 +122,6 @@ public class Backup implements Runnable {
 
         try{
             Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunkNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
-            System.out.println(message.toString().getBytes().length);
-            System.out.println("??????????????????????????????????");
             chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(chunk);
         }
@@ -171,7 +171,14 @@ public class Backup implements Runnable {
   }
 
     private void codify_fileId() {
-        file_id = removeExtension(file_name);
+      try {
+        Path file = Paths.get(file_name);
+        BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
+        Sha sha = new Sha();
+        file_id = sha.hash256(attr.toString());
+      } catch(Exception e) {
+        e.printStackTrace();
+      }
     }
 
 
@@ -200,21 +207,6 @@ public class Backup implements Runnable {
         e.printStackTrace();
     }
 
-    System.out.println("aqui chega");
-}
-
-  public void deserialize_Object(){
-
-    try{
-        ObjectInputStream is = new ObjectInputStream(new FileInputStream(filebin));
-        ArrayOfFiles novo = (ArrayOfFiles)is.readObject();
-        is.close();
-        System.out.println(novo.files.get(0).getFileId());
-    }
-    catch(Exception e){
-        e.printStackTrace();
-    }
-
 }
 
 
@@ -239,7 +231,6 @@ public class Backup implements Runnable {
                 send_chunk(i);
                 try {
                   Thread.sleep(j);
-                  System.out.println("J: " +j);
                 } catch (Exception e) {
                   e.printStackTrace();
                 }
@@ -251,7 +242,6 @@ public class Backup implements Runnable {
           System.out.println("All Chunks Sended");
 
           serialize_Object();
-          deserialize_Object();
 
           System.exit(1);
           }
@@ -267,7 +257,10 @@ public class Backup implements Runnable {
 
                 Message receivedMessage = treatData(incomingData);
 
-                currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().getBytes().length));
+                int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
+
+                if(i == -1)
+                  currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().getBytes().length));
 
                 Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
 
@@ -278,6 +271,8 @@ public class Backup implements Runnable {
                 backup_with_channel.setMessage("nada");
 
                 System.out.println("Chunk received and saved to HDD!");
+
+                serialize_Object();
 
             }
           } catch (Exception ex) {

@@ -43,6 +43,7 @@ public class Channel implements Runnable {
 
     private ArrayOfFiles currentFiles;
 
+    private boolean receivedChunk = false;
 
     public class Listener_Channel implements Runnable {
 
@@ -60,18 +61,12 @@ public class Channel implements Runnable {
                 serverSocket.receive(incomingPacket);
 
                 Message receivedMessage = treatData(incomingData);
-                System.out.println(receivedMessage.toString());
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
 
                 if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number && i != -1) {
                   currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
                 }
 
-                for(int j = 0; j < currentFiles.chunksStore.size(); j++) {
-                  System.out.println(currentFiles.chunksStore.get(j).getId());
-                  System.out.println(currentFiles.chunksStore.get(j).getPerceivedReplicationDeg());
-                  System.out.println(currentFiles.chunksStore.get(j).getSize());
-                }
             }
           } catch (Exception ex) {
               ex.printStackTrace();
@@ -112,7 +107,6 @@ public class Channel implements Runnable {
     public void send_Message(String message){
         try{
 
-            System.out.println("/////////////////////////////");
             packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(packetToSend);
 
@@ -180,6 +174,7 @@ public class Channel implements Runnable {
 
         System.out.println("Main Channel Service Enabled!");
 
+        //Send Store and escuta mc
         if(command.equals("RECEIVER")) {
 
 
@@ -211,6 +206,8 @@ public class Channel implements Runnable {
               ex.printStackTrace();
           }
         }
+
+        //Send GetChunk
         else if (command.equals("RESTORE")) {
 
 

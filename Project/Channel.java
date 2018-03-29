@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.nio.ByteBuffer;
+import java.nio.file.DirectoryStream;
 import java.nio.channels.FileChannel;
 import java.util.Random;
 
@@ -66,6 +67,11 @@ public class Channel implements Runnable {
                   currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
                 }
 
+                if(receivedMessage.getCommand().equals("DELETE") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
+                  System.out.println("DELETE CHUNKS");
+                  deleteChunks(receivedMessage.getFileId());
+                }
+
             }
           } catch (Exception ex) {
               ex.printStackTrace();
@@ -102,6 +108,22 @@ public class Channel implements Runnable {
 
             }
         }
+    }
+
+    public static boolean deleteChunks(final String prefix) {
+        boolean success = true;
+        String path = "dest";
+        try (DirectoryStream<Path> newDirectoryStream = Files.newDirectoryStream(Paths.get(path), prefix + "*")) {
+            for (final Path newDirectoryStreamItem : newDirectoryStream) {
+                Files.delete(newDirectoryStreamItem);
+            }
+        } catch (final Exception e) {
+            success = false;
+            e.printStackTrace();
+        }
+        return success;
+    }
+
 
     public void send_Message(String message){
         try{
@@ -114,11 +136,6 @@ public class Channel implements Runnable {
             e.printStackTrace();
         }
     }
-
-    }
-
-
-
 
 
     public void connect_multicast() {
@@ -142,13 +159,16 @@ public class Channel implements Runnable {
 
         String[] header = parts[0].split(" ");
 
-        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]));
+        if(header[0].equals("STORED"))
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]));
 
+        else
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3]);
   }
 
 
 	public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
-		this.name = name;
+		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
@@ -159,12 +179,23 @@ public class Channel implements Runnable {
 	}
 
   public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel){
-    this.name = name;
+        this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
         this.port_number = port_number;
         this.backup_with_channel = backup_with_channel;
+  }
+
+  public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int port_number, ArrayOfFiles currentFiles){
+        this.name = name;
+        this.mcast_addr = mcast_addr;
+        this.mcast_port = mcast_port;
+        this.command = command;
+        this.file_name = file_name;
+        this.port_number = port_number;
+        this.currentFiles = currentFiles;
+
   }
 
 	public void run()  {
@@ -210,6 +241,29 @@ public class Channel implements Runnable {
         else if (command.equals("RESTORE")) {
 
 
+        }
+
+        //Send DELETE
+        else if (command.equals("DELETE")) {
+          System.out.println(file_name);
+          int i = currentFiles.hasFile(file_name);
+
+          if(i == -1) {
+            System.out.println("Didn't Backup this file");
+            System.exit(2);
+          }
+          Message message = new Message("DELETE", 1, Integer.toString(port_number), currentFiles.files.get(i).getFileId());
+
+          DatagramPacket deletemsg = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
+
+          for(int j = 0; j < 5; j++) {
+            try {
+              serverSocket.send(deletemsg);
+              Thread.sleep(500);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+          }
         }
 
 

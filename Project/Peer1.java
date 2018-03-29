@@ -72,7 +72,7 @@ public class Peer1 {
         }
         if(command.equals("RESTORE")) {
 
-            Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RESTORE", port_number, backup_with_channel));
+            Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RESTORE", port_number, restore_with_channel));
             multicast_channel.start();
 
             Thread multicast_restore = new Thread(new Restore("IP:PORT", mcast_addr, mcast_restore_port, "RESTORE", args[2], port_number, restore_with_channel, currentFiles));
@@ -106,6 +106,13 @@ public class Peer1 {
             System.out.println("Perceived Replication Degree: " + currentFiles.chunksStore.get(i).getPerceivedReplicationDeg());
             System.out.println();
           }
+        }
+
+        if(command.equals("DELETE")) {
+
+            Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "DELETE", args[2], port_number, currentFiles));
+            multicast_channel.start();
+
         }
 
         //!!!Threads for each Service of Peer!!!

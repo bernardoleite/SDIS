@@ -132,7 +132,7 @@ public class Backup implements Runnable {
 
 
 	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
-		this.name = name;
+		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.file_name = file_name;
@@ -144,7 +144,7 @@ public class Backup implements Runnable {
 	}
 
   public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number, ArrayOfFiles currentFiles){
-		this.name = name;
+		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
@@ -259,7 +259,7 @@ public class Backup implements Runnable {
 
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
 
-                if(i == -1) 
+                if(i == -1)
                   currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().getBytes().length));
 
                 Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());

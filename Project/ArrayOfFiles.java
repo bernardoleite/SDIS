@@ -14,5 +14,13 @@ public class ArrayOfFiles implements Serializable{
 		return -1;
 	}
 
+	public int hasFile(String pathname) {
+		for(int i = 0; i < files.size(); i++) {
+			System.out.println(files.get(i).getPathName());
+			if(files.get(i).getPathName().equals(pathname))
+				return i;
+		}
+		return -1;
+	}
 
 }

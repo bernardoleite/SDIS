@@ -110,12 +110,38 @@ public class Channel implements Runnable {
         }
     }
 
-    public static boolean deleteChunks(final String prefix) {
+    public static String removeExtension(String s) {
+
+        String separator = System.getProperty("file.separator");
+        String filename;
+
+        // Remove the path upto the filename.
+        int lastSeparatorIndex = s.lastIndexOf(separator);
+        if (lastSeparatorIndex == -1) {
+            filename = s;
+        } else {
+            filename = s.substring(lastSeparatorIndex + 1);
+        }
+
+        // Remove the extension.
+        int extensionIndex = filename.lastIndexOf(".");
+        if (extensionIndex == -1)
+            return filename;
+
+        return filename.substring(0, extensionIndex);
+    }
+
+    public boolean deleteChunks(final String prefix) {
         boolean success = true;
         String path = "dest";
         try (DirectoryStream<Path> newDirectoryStream = Files.newDirectoryStream(Paths.get(path), prefix + "*")) {
             for (final Path newDirectoryStreamItem : newDirectoryStream) {
+                String id = removeExtension(newDirectoryStreamItem.getFileName().toString());
+                System.out.println(id);
+                int i = currentFiles.hasChunkStore(id);
+                currentFiles.chunksStore.remove(i);
                 Files.delete(newDirectoryStreamItem);
+                serialize_Object();
             }
         } catch (final Exception e) {
             success = false;
@@ -124,6 +150,20 @@ public class Channel implements Runnable {
         return success;
     }
 
+    public void serialize_Object(){
+
+      String filebin = "data.bin";
+      try{
+        ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(filebin));
+        os.writeObject(currentFiles);
+        os.close();
+      }
+      catch(Exception e)
+      {
+          e.printStackTrace();
+      }
+
+    }
 
     public void send_Message(String message){
         try{
@@ -264,6 +304,8 @@ public class Channel implements Runnable {
                 ex.printStackTrace();
             }
           }
+          currentFiles.files.remove(i);
+          serialize_Object();
         }
 
 

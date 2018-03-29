@@ -198,16 +198,16 @@ public class Backup implements Runnable {
 
     filebin = "data.bin";
     try{
-    ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(filebin));
-    os.writeObject(currentFiles);
-    os.close();
+      ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(filebin));
+      os.writeObject(currentFiles);
+      os.close();
     }
     catch(Exception e)
     {
         e.printStackTrace();
     }
 
-}
+  }
 
 
 	public void run()  {

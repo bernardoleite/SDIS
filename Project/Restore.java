@@ -50,7 +50,7 @@ public class Restore implements Runnable {
 
     private boolean receivedChunk = false;
 
-    private Message getchunkmsg;
+    private ArrayList<Message> chunkmsgs = new ArrayList<Message>();
 
     public class Listener_Restore implements Runnable {
 
@@ -66,13 +66,9 @@ public class Restore implements Runnable {
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 serverSocket.receive(incomingPacket);
-
                 Message receivedMessage = treatData(incomingData);
-
-                if(getchunkmsg != null && receivedMessage.getCommand().equals("CHUNK") && getchunkmsg.getFileId().equals(receivedMessage.getFileId()) && getchunkmsg.getChunkNo() == receivedMessage.getChunkNo()) {
-                    receivedChunk = true;
-                }
-
+                if(Integer.parseInt(receivedMessage.getSenderId()) != port_number)
+                  chunkmsgs.add(receivedMessage);
             }
           } catch (Exception ex) {
               ex.printStackTrace();
@@ -103,6 +99,17 @@ public class Restore implements Runnable {
         this.currentFiles = currentFiles;
 	}
 
+  public Restore(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat restore_with_channel, ArrayOfFiles currentFiles) {
+        this.name = name;
+        this.mcast_addr = mcast_addr;
+        this.mcast_port = mcast_port;
+        this.command = command;
+        this.file_name = file_name;
+        this.port_number = port_number;
+        this.restore_with_channel = restore_with_channel;
+        this.currentFiles = currentFiles;
+  }
+
     public void make_GETCHUNK_array() {
 
         getchunks = new ArrayList<String>();
@@ -115,8 +122,6 @@ public class Restore implements Runnable {
                   String[] parts = currentFiles.files.get(i).getChunksInfo().get(j).getId().split("\\.");
 
                   Message msg = new Message("GETCHUNK", 1, Integer.toString(port_number), parts[0], Integer.parseInt(parts[1]));
-                  System.out.println(msg.toString());
-                  System.out.println();
                   getchunks.add(msg.toString());
                 }
             }
@@ -140,7 +145,27 @@ public class Restore implements Runnable {
 
     }
 
-	public void run() {
+    public void send_Message(String message){
+        try{
+            packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
+            serverSocket.send(packetToSend);
+
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public boolean checkChunkMsgs(Message stringmsg) {
+        for (int i = 0; i < chunkmsgs.size(); i++) {
+
+          if(chunkmsgs.get(i).getFileId().equals(stringmsg.getFileId()) && chunkmsgs.get(i).getChunkNo() == stringmsg.getChunkNo()) {
+            return true;
+          }
+        }
+        return false;
+    }
+	  public void run() {
 
         connect_multicast();
 
@@ -159,12 +184,12 @@ public class Restore implements Runnable {
                 byte[] incomingData = new byte[64000];
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
-
                 serverSocket.receive(incomingPacket);
 
                 Message receivedMessage = treatData(incomingData);
-
-                System.out.println(receivedMessage.toString());
+                System.out.println(receivedMessage.getFileId());
+                System.out.println(receivedMessage.getChunkNo());
+                System.out.println(receivedMessage.getSenderId());
               }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -179,19 +204,38 @@ public class Restore implements Runnable {
 
             Thread listener_restore = new Thread(new Listener_Restore());
             listener_restore.start();
-/*
-            while(true) {
-              //ve se no chat getChunkmsg
-              //atualiza getchunkmsg e receivedChunk
-              //sleep
-              //se receivedChunk == false envia chunk
-              //senao nao faz nada
-              //set chat msg to nada
-            }*/
 
             System.out.println("Ready to Receive in Restore");
-        }
 
+            String string;
+
+            while(true) {
+
+              while(true){
+                if(!restore_with_channel.getMsgChunk().equals("nada")) {
+                  string = restore_with_channel.getMsgChunk();
+                  break;
+                }
+              }
+              try {
+                int j = rand.nextInt(400);
+
+                Thread.sleep(j);
+              } catch (Exception e) {
+                e.printStackTrace();
+              }
+
+              Message msgsend = treatData(string.getBytes());
+
+              if(!checkChunkMsgs(msgsend)) {
+                send_Message(string);
+                chunkmsgs.add(msgsend);
+                System.out.println("SENDING CHUNK");
+              }
+
+            }
+
+        }
 
       }
 

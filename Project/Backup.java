@@ -92,8 +92,7 @@ public class Backup implements Runnable {
     public void read_file()  {
 
       try{
-        RandomAccessFile aFile = new RandomAccessFile
-                (file_name, "r");
+        RandomAccessFile aFile = new RandomAccessFile(file_name, "r");
         FileChannel inChannel = aFile.getChannel();
         ByteBuffer buffer = ByteBuffer.allocate(64000);
         int j = 1;
@@ -268,11 +267,13 @@ public class Backup implements Runnable {
 
                 writeBytesToFileNio(receivedMessage);
 
-                backup_with_channel.setMessage("nada");
 
                 System.out.println("Chunk received and saved to HDD!");
 
                 serialize_Object();
+
+                backup_with_channel.setMessage("nada");
+
 
             }
           } catch (Exception ex) {

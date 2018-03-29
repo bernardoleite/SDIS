@@ -38,6 +38,7 @@ public class Channel implements Runnable {
 
     //Chat with Backup
     private Chat backup_with_channel;
+    private Chat restore_with_channel;
 
 
     private Random rand = new Random();
@@ -62,7 +63,6 @@ public class Channel implements Runnable {
 
                 Message receivedMessage = treatData(incomingData);
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
-
                 if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number && i != -1) {
                   currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
                 }
@@ -70,6 +70,16 @@ public class Channel implements Runnable {
                 if(receivedMessage.getCommand().equals("DELETE") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
                   System.out.println("DELETE CHUNKS");
                   deleteChunks(receivedMessage.getFileId());
+                }
+
+                if(receivedMessage.getCommand().equals("GETCHUNK") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
+                  System.out.println("GET CHUNK");
+                  String chunkmsg = getChunk(receivedMessage);
+
+
+                  if(!chunkmsg.equals("doesn't exits")) {
+                    restore_with_channel.setMsgChunk(chunkmsg);
+                  }
                 }
 
             }
@@ -88,16 +98,19 @@ public class Channel implements Runnable {
         }
 
         public void run(){
+            String string = "";
             while(true){
 
                 while(true){
                     //Removed print
-                    if(!backup_with_channel.getMessage().equals("nada"))
+                    if(!backup_with_channel.getMessage().equals("nada")) {
+                        string = backup_with_channel.getMessage();
                         break;
+                    }
                 }
 
 
-                send_Message(backup_with_channel.getMessage());
+                send_Message(string);
                 try {
                   int j = rand.nextInt(400);
 
@@ -131,8 +144,36 @@ public class Channel implements Runnable {
         return filename.substring(0, extensionIndex);
     }
 
-    public boolean deleteChunks(final String prefix) {
-        boolean success = true;
+    public String getChunk(Message receivedMessage) {
+      int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + receivedMessage.getChunkNo());
+      if (i == -1)
+        return "doesn't exits";
+      Message chunkmsg;
+      try {
+          // FileReader reads text files in the default encoding.
+          FileReader fileReader = new FileReader("dest/" + currentFiles.chunksStore.get(i).getId() + ".txt");
+
+          // Always wrap FileReader in BufferedReader.
+          BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+          String response = new String();
+          for (String line; (line = bufferedReader.readLine()) != null; response += line);
+
+          chunkmsg = new Message("CHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), response);
+
+          // Always close files.
+          bufferedReader.close();
+
+          return chunkmsg.toString();
+
+      } catch (Exception e) {
+          e.printStackTrace();
+      }
+      return "doesn't exits";
+
+    }
+
+    public void deleteChunks(final String prefix) {
         String path = "dest";
         try (DirectoryStream<Path> newDirectoryStream = Files.newDirectoryStream(Paths.get(path), prefix + "*")) {
             for (final Path newDirectoryStreamItem : newDirectoryStream) {
@@ -142,12 +183,11 @@ public class Channel implements Runnable {
                 currentFiles.chunksStore.remove(i);
                 Files.delete(newDirectoryStreamItem);
                 serialize_Object();
+
             }
         } catch (final Exception e) {
-            success = false;
             e.printStackTrace();
         }
-        return success;
     }
 
     public void serialize_Object(){
@@ -199,7 +239,7 @@ public class Channel implements Runnable {
 
         String[] header = parts[0].split(" ");
 
-        if(header[0].equals("STORED"))
+        if(header[0].equals("STORED") || header[0].equals("GETCHUNK"))
           return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]));
 
         else
@@ -207,24 +247,30 @@ public class Channel implements Runnable {
   }
 
 
-	public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
+	public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel, Chat restore_with_channel, ArrayOfFiles currentFiles){
 		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
         this.port_number = port_number;
         this.backup_with_channel = backup_with_channel;
+        this.restore_with_channel = restore_with_channel;
         this.currentFiles = currentFiles;
 
 	}
 
-  public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat backup_with_channel){
+  public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, int port_number, Chat channel){
         this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
         this.command = command;
         this.port_number = port_number;
-        this.backup_with_channel = backup_with_channel;
+        if(command.equals("RESTORE")) {
+          this.restore_with_channel = channel;
+        }
+        else if (command.equals("BACKUP")) {
+          this.backup_with_channel = channel;
+        }
   }
 
   public Channel(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int port_number, ArrayOfFiles currentFiles){
@@ -277,15 +323,33 @@ public class Channel implements Runnable {
           }
         }
 
-        //Send GetChunk
+        //Send All GetChunkmsg when getchunks.length > 0
         else if (command.equals("RESTORE")) {
 
+          while(true){
+
+              while(true){
+                  //Removed print
+                  if(restore_with_channel.getGetChunks().size() != 0)
+                      break;
+              }
+              for(int i = 0; i < restore_with_channel.getGetChunks().size(); i++) {
+                DatagramPacket getchunkmsg = new DatagramPacket(restore_with_channel.getGetChunks().get(i).getBytes() ,restore_with_channel.getGetChunks().get(i).getBytes().length, mcast_addr, mcast_port);
+                try {
+                  serverSocket.send(getchunkmsg);
+                  Thread.sleep(500);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+              }
+              restore_with_channel.clearGetChunks();
+
+          }
 
         }
 
         //Send DELETE
         else if (command.equals("DELETE")) {
-          System.out.println(file_name);
           int i = currentFiles.hasFile(file_name);
 
           if(i == -1) {

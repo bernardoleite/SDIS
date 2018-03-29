@@ -57,14 +57,18 @@ public class Peer1 {
 
         //LONELY PEER
         if(command.equals("RECEIVER")) {
-          Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "RECEIVER", backup_with_channel, port_number, currentFiles));
-          multicast_backup.start();
+            Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "RECEIVER", backup_with_channel, port_number, currentFiles));
+            multicast_backup.start();
 
-          Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RECEIVER", port_number, backup_with_channel, currentFiles));
-          multicast_channel.start();
+            Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "RECEIVER", port_number, backup_with_channel, restore_with_channel, currentFiles));
+            multicast_channel.start();
+
+            Thread multicast_restore = new Thread(new Restore("IP:PORT", mcast_addr, mcast_restore_port, "RECEIVER", port_number, restore_with_channel, currentFiles));
+            multicast_restore.start();
         }
         //Backup Channel
         if(command.equals("BACKUP")) {
+
             Thread multicast_backup = new Thread(new Backup("IP:PORT", mcast_addr, mcast_backup_port, "BACKUP", args[2], Integer.parseInt(args[3]), port_number, backup_with_channel, currentFiles));
             multicast_backup.start();
             Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "BACKUP", port_number, backup_with_channel));
@@ -114,21 +118,6 @@ public class Peer1 {
             multicast_channel.start();
 
         }
-
-        //!!!Threads for each Service of Peer!!!
-/*
-        //Main Channel
-            Thread multicast_channel = new Thread(new Channel("IP:PORT",mcast_addr, mcast_port));
-            multicast_channel.start();
-
-        //Backup Channel
-            Thread multicast_backup = new Thread(new Backup("IP:PORT",mcast_addr, mcast_port));
-            multicast_backup.start();
-
-        //Restore Channel
-            Thread multicast_restore = new Thread(new Restore("IP:PORT",mcast_addr, mcast_port));
-            multicast_restore.start();
-*/
 
         Thread.sleep(500);
 

@@ -5,6 +5,9 @@ class Chat {
    //used between  PEER_RECEIVER-BACKUP and CHANNEL-BACKUP
    private volatile String message = "nada";
 
+   //used between PEER_RECEIVER-CHANNEL and RESTORE
+   private volatile String msgchunk = "nada";
+
    //used between PEER_INITIATOR-BACKUP and CHANNEL-BACKUP
    private volatile ArrayList<String> inbox = new ArrayList<String>();
 
@@ -32,8 +35,24 @@ class Chat {
       this.message = msg;
    }
 
+   public void setMsgChunk(String msg) {
+      this.msgchunk = msg;
+   }
+
+   public String getMsgChunk() {
+      return this.msgchunk;
+   }
+
    public void setGetChunks(ArrayList<String> getchunks) {
       this.getchunks = getchunks;
+   }
+
+   public ArrayList<String> getGetChunks() {
+       return getchunks;
+   }
+
+   public void clearGetChunks() {
+       getchunks = new ArrayList<String>();
    }
 
 }

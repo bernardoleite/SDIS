@@ -1,15 +1,15 @@
 public class Message {
 
-    private String command;
-    private String senderId;
-    private String fileId;
-    private int version;
-    private int chunkNo;
-    private int replication_deg;
-    private String body;
+  private String command;
+  private String senderId;
+  private String fileId;
+  private int version;
+  private int chunkNo;
+  private int replication_deg;
+  private byte[] body;
 
 //PUTCHUNK
-  public Message(String command, int version, String senderId, String fileId, int chunkNo, int replication_deg, String body){
+  public Message(String command, int version, String senderId, String fileId, int chunkNo, int replication_deg, byte[] body){
     this.command = command;
     this.senderId = senderId;
     this.fileId = fileId;
@@ -40,12 +40,12 @@ public class Message {
     return replication_deg;
   }
 
-  public String getBody() {
+  public byte[] getBody() {
     return body;
   }
 
 //CHUNK
-  public Message(String command, int version, String senderId, String fileId, int chunkNo, String body){
+  public Message(String command, int version, String senderId, String fileId, int chunkNo, byte[] body){
     this.command = command;
     this.senderId = senderId;
     this.fileId = fileId;
@@ -67,14 +67,18 @@ public class Message {
   }
 
 //STORED RESTORE RECLAIM
-    public Message(String command, int version, String senderId, String fileId, int chunkNo){
+  public Message(String command, int version, String senderId, String fileId, int chunkNo){
     this.command = command;
     this.version = version;
     this.senderId = senderId;
     this.fileId = fileId;
     this.chunkNo = chunkNo;
     this.replication_deg = -1;
-    this.body = "";
+    this.body = new byte[0];
+  }
+
+  public Message(String command){
+    this.command = command;
   }
 
   public String toString() {
@@ -84,19 +88,14 @@ public class Message {
         return command + " " + version + " " + senderId + " " + fileId + "\r\n\r\n";
       }
       else {
-        //STORED RESTORE RECLAIM
-        if(body.equals("")) {
+        //STORED RESTORE RECLAIM CHUNK
           return command + " " + version + " " + senderId + " " + fileId + " " + chunkNo + "\r\n\r\n";
-        }
-        //CHUNK
-        else {
-          return command + " " + version + " " + senderId + " " + fileId +  " " + chunkNo + "\r\n\r\n" + body;
-        }
+
       }
     }
     else {
       //PUTCHUNK
-      return command + " " + version + " " + senderId + " " + fileId + " " + chunkNo + " " + replication_deg + "\r\n\r\n" + body;
+      return command + " " + version + " " + senderId + " " + fileId + " " + chunkNo + " " + replication_deg + "\r\n\r\n";
     }
   }
 

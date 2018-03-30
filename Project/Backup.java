@@ -89,63 +89,85 @@ public class Backup implements Runnable {
         return filename.substring(0, extensionIndex);
     }
 
+    public static final byte[] loadFile(File file) throws FileNotFoundException {
+  		FileInputStream inputStream = new FileInputStream(file);
+
+  		byte[] data = new byte[(int) file.length()];
+
+  		try {
+  			inputStream.read(data);
+  			inputStream.close();
+  		} catch (IOException e) {
+  			e.printStackTrace();
+  		}
+
+  		return data;
+  	}
+
+
     public void read_file()  {
 
-  //      int partCounter = 1;
 
         try {
-/*          Path path = Paths.get(file_name);
-          String data = new String(Files.readAllBytes(path));
-          String[] bodies = split(data, 64000, 999999999);
-          for(int i = 0; i < bodies.length; i++) {
 
-            chunksToSend.add(new Chunk(file_id, partCounter++, replication_deg, bodies[i].getBytes()));
-*/
+            byte[] fileData = loadFile(new File(file_name));
 
-          RandomAccessFile aFile = new RandomAccessFile(file_name, "r");
-          FileChannel inChannel = aFile.getChannel();
-          ByteBuffer buffer = ByteBuffer.allocate(64000);
-          int j = 1;
-          while(inChannel.read(buffer) > 0)	{
-             buffer.flip();
-             byte[] arr = new byte[buffer.remaining()];
-             buffer.get(arr, 0, arr.length);
-             chunksToSend.add(new Chunk(file_id, j++, replication_deg, arr));
-             buffer.clear(); // do something with the data and clear/compact it.
+      			int numChunks = fileData.length / 64000 + 1;
 
-          }
-          inChannel.close();
-          aFile.close();
+
+      			ByteArrayInputStream stream = new ByteArrayInputStream(fileData);
+      			byte[] streamConsumer = new byte[64000];
+
+      			for (int i = 0; i < numChunks; i++) {
+      				byte[] chunkData;
+
+      				if (i == numChunks - 1 && fileData.length % 64000 == 0) {
+      					chunkData = new byte[0];
+      				} else {
+      					int numBytesRead = stream.read(streamConsumer, 0,
+      							streamConsumer.length);
+
+      					chunkData = Arrays.copyOfRange(streamConsumer, 0,
+      							numBytesRead);
+      				}
+
+      				chunksToSend.add(new Chunk(file_id, i+1, 1, chunkData));
+
+      			}
         } catch(Exception e){
           e.printStackTrace();
         }
 
     }
 
-    public static String[] split(String text, int chunkSize, int maxLength) {
-        char[] data = text.toCharArray();
-        int len = Math.min(data.length,maxLength);
-        String[] result = new String[(len+chunkSize-1)/chunkSize];
-        int linha = 0;
-        for (int i=0; i < len; i+=chunkSize) {
-            result[linha] = new String(data, i, Math.min(chunkSize,len-i));
-            linha++;
-        }
-        return result;
-    }
-
     public void send_chunk(int i) {
 
         try{
-            Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunkNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
-            chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
+            Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunkNo(), chunksToSend.get(i).getReplication_Deg(), chunksToSend.get(i).getBody());
+            byte[] send = concatBytes(message.toString().getBytes(), message.getBody());
+            chunk = new DatagramPacket(send, send.length, mcast_addr, mcast_port);
+
             serverSocket.send(chunk);
-            System.out.println("Chunk: " + message.getBody());
+            System.out.println("SIZE OF BODY: " + message.getBody().length);
         }
         catch(Exception e){
             e.printStackTrace();
         }
     }
+
+
+    public static byte[] concatBytes(byte[] a, byte[] b) {
+      		int aLen = a.length;
+      		int bLen = b.length;
+
+      		byte[] c = new byte[aLen + bLen];
+
+      		System.arraycopy(a, 0, c, 0, aLen);
+      		System.arraycopy(b, 0, c, aLen, bLen);
+
+      		return c;
+  	}
+
 
 
 	  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
@@ -175,13 +197,12 @@ public class Backup implements Runnable {
 
         try {
 
-            Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
+            Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo());
 
-            FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
-            System.out.println("Chunk: \r\n" + receivedMessage.getBody());
+            FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo());
 
-
-            out.write(receivedMessage.getBody().getBytes());
+            System.out.println(receivedMessage.getBody().length);
+            out.write(receivedMessage.getBody());
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -201,16 +222,46 @@ public class Backup implements Runnable {
     }
 
 
-  private Message treatData(byte[] incomingData) {
-        String string = new String(incomingData);
+  private Message treatData(DatagramPacket incomingPacket) {
+        String string = new String(incomingPacket.getData());
 
 
         String[] parts = string.split("\r\n\r\n");
-
+        byte[] body = extractBody(incomingPacket);
+        System.out.println("SIZE OF BODY: " +body.length);
         String[] header = parts[0].split(" ");
 
-        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1]);
+        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), body);
 
+  }
+
+  private byte[] extractBody(DatagramPacket incomingPacket) {
+    ByteArrayInputStream stream = new ByteArrayInputStream(incomingPacket.getData());
+    BufferedReader reader = new BufferedReader(
+        new InputStreamReader(stream));
+
+    String line = null;
+    int headerLinesLengthSum = 0;
+    int numLines = 0;
+    byte[] body;
+    String crlf = "/r/n";
+    do {
+      try {
+        line = reader.readLine();
+
+        headerLinesLengthSum += line.length();
+
+        numLines++;
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    } while (!line.isEmpty());
+
+    int bodyStartIndex = headerLinesLengthSum + numLines + 2;
+
+    body = Arrays.copyOfRange(incomingPacket.getData(), bodyStartIndex,
+        incomingPacket.getLength());
+        return body;
   }
 
   public void serialize_Object(){
@@ -274,13 +325,12 @@ public class Backup implements Runnable {
 
                 serverSocket.receive(incomingPacket);
 
-                Message receivedMessage = treatData(incomingData);
+                Message receivedMessage = treatData(incomingPacket);
 
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
-                System.out.println("Chunk: \r\n" + receivedMessage.getBody().getBytes());
 
                 if(i == -1)
-                  currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().getBytes().length));
+                  currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().length));
 
                 Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
 

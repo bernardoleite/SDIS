@@ -70,7 +70,7 @@ public class Restore implements Runnable {
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 serverSocket.receive(incomingPacket);
-                Message receivedMessage = treatData(incomingData);
+                Message receivedMessage = treatData(incomingPacket);
                 if(Integer.parseInt(receivedMessage.getSenderId()) != port_number)
                   chunkmsgs.add(receivedMessage);
             }
@@ -137,21 +137,53 @@ public class Restore implements Runnable {
         restore_with_channel.setGetChunks(getchunks);
     }
 
-    private Message treatData(byte[] incomingData) {
-          String string = new String(incomingData);
+    private Message treatData(DatagramPacket incomingPacket) {
+          String string = new String(incomingPacket.getData());
 
 
           String[] parts = string.split("\r\n\r\n");
-
+          byte[] body = extractBody(incomingPacket);
           String[] header = parts[0].split(" ");
-
-          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), parts[1].trim());
+          System.out.println("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+          System.out.println(body);
+          System.out.println("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), body);
 
     }
 
-    public void send_Message(String message){
+    private byte[] extractBody(DatagramPacket incomingPacket) {
+      ByteArrayInputStream stream = new ByteArrayInputStream(incomingPacket.getData());
+      BufferedReader reader = new BufferedReader(
+          new InputStreamReader(stream));
+
+      String line = null;
+      int headerLinesLengthSum = 0;
+      int numLines = 0;
+      byte[] body;
+      String crlf = "/r/n";
+      do {
+        try {
+          line = reader.readLine();
+
+          headerLinesLengthSum += line.length();
+
+          numLines++;
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } while (!line.isEmpty());
+
+      int bodyStartIndex = headerLinesLengthSum + numLines + 2;
+
+      body = Arrays.copyOfRange(incomingPacket.getData(), bodyStartIndex, incomingPacket.getLength());
+      return body;
+    }
+
+    public void send_Message(Message message){
         try{
-            packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
+            byte[] send = concatBytes(message.toString().getBytes(), message.getBody());
+
+            packetToSend = new DatagramPacket(send, send.length, mcast_addr, mcast_port);
             serverSocket.send(packetToSend);
 
         }
@@ -160,14 +192,24 @@ public class Restore implements Runnable {
         }
     }
 
-    public void write_file(String file_body) {
+    public static byte[] concatBytes(byte[] a, byte[] b) {
+          int aLen = a.length;
+          int bLen = b.length;
+
+          byte[] c = new byte[aLen + bLen];
+
+          System.arraycopy(a, 0, c, 0, aLen);
+          System.arraycopy(b, 0, c, aLen, bLen);
+
+          return c;
+    }
+
+    public void write_file(byte[] file_body) {
       try {
 
-          Path path = Paths.get(destinationPath + file_name);
-          System.out.println(file_body);
           FileOutputStream out = new FileOutputStream(destinationPath + file_name);
 
-          out.write(file_body.getBytes());
+          out.write(file_body);
           out.close();
       } catch (IOException e) {
           e.printStackTrace();
@@ -188,7 +230,7 @@ public class Restore implements Runnable {
     public boolean hasRestoredChunk(Message stringmsg) {
         for (int i = 0; i < restoredChunk.size(); i++) {
 
-          if(restoredChunk.get(i).getFileId().equals(stringmsg.getFileId()) && restoredChunk.get(i).getChunkNo() == stringmsg.getChunkNo()) {
+          if(restoredChunk.get(i).getChunkNo() == stringmsg.getChunkNo()) {
             return true;
           }
         }
@@ -209,7 +251,7 @@ public class Restore implements Runnable {
             make_GETCHUNK_array();
             int number_of_chunks = getchunks.size();
             int size = 0;
-            String allBodies = "";
+            byte[] allBodies = new byte[0];
             //send previous array to Chat
             send_GETCHUNK_array_toChat();
             try {
@@ -219,16 +261,19 @@ public class Restore implements Runnable {
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 serverSocket.receive(incomingPacket);
 
-                Message receivedMessage = treatData(incomingData);
+                Message receivedMessage = treatData(incomingPacket);
                 if(!hasRestoredChunk(receivedMessage)) {
                   size++;
-                  allBodies += receivedMessage.getBody();
+                  allBodies = concatBytes(allBodies, receivedMessage.getBody());
                   restoredChunk.add(receivedMessage);
                 }
                 System.out.println(receivedMessage.getFileId());
                 System.out.println(receivedMessage.getChunkNo());
                 System.out.println(receivedMessage.getSenderId());
-                System.out.println(receivedMessage.getBody().getBytes().length);
+                String s;
+                System.out.println(new String(receivedMessage.getBody()).length());
+                System.out.println(size);
+                System.out.println(number_of_chunks);
                 if(size == number_of_chunks) {
                   break;
                 }
@@ -248,13 +293,13 @@ public class Restore implements Runnable {
 
             System.out.println("Ready to Receive in Restore");
 
-            String string;
+            Message msg;
 
             while(true) {
 
               while(true){
-                if(!restore_with_channel.getMsgChunk().equals("nada")) {
-                  string = restore_with_channel.getMsgChunk();
+                if(!restore_with_channel.getMsgChunk().getCommand().equals("nada")) {
+                  msg = restore_with_channel.getMsgChunk();
                   break;
                 }
               }
@@ -265,14 +310,14 @@ public class Restore implements Runnable {
               } catch (Exception e) {
                 e.printStackTrace();
               }
+              System.out.println("HELLO???????????????????????????????????????????");
 
-              Message msgsend = treatData(string.getBytes());
 
-              if(!checkChunkMsgs(msgsend)) {
-                send_Message(string);
-                chunkmsgs.add(msgsend);
+              if(!checkChunkMsgs(msg)) {
+                send_Message(msg);
+                chunkmsgs.add(msg);
                 System.out.println("SENDING CHUNK");
-                System.out.println("SIZE: " + msgsend.getBody().getBytes().length);
+                System.out.println("SIZE: " + msg.getBody().length);
 
               }
 

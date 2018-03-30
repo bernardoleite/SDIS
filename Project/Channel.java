@@ -74,10 +74,11 @@ public class Channel implements Runnable {
 
                 if(receivedMessage.getCommand().equals("GETCHUNK") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
                   System.out.println("GET CHUNK");
-                  String chunkmsg = getChunk(receivedMessage);
+                  Message chunkmsg = getChunk(receivedMessage);
 
 
-                  if(!chunkmsg.equals("doesn't exits")) {
+                  if(!chunkmsg.getCommand().equals("doesn't exits")) {
+                    System.out.println("LDSDGSGMSDGMSLFSMLSBF");
                     restore_with_channel.setMsgChunk(chunkmsg);
                   }
                 }
@@ -144,24 +145,26 @@ public class Channel implements Runnable {
         return filename.substring(0, extensionIndex);
     }
 
-    public String getChunk(Message receivedMessage) {
+    public Message getChunk(Message receivedMessage) {
       int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + receivedMessage.getChunkNo());
       if (i == -1)
-        return "doesn't exits";
+        return new Message("doesn't exits");
       Message chunkmsg;
       try {
 
-          Path path = Paths.get("dest/" + currentFiles.chunksStore.get(i).getId() + ".txt");
-          String data = new String(Files.readAllBytes(path));
-          System.out.println("CHUNK SIZE: " + data.getBytes().length);
+          Path path = Paths.get("dest/" + currentFiles.chunksStore.get(i).getId());
+          byte[] data = Files.readAllBytes(path);
+          System.out.println(currentFiles.chunksStore.get(i).getId());
+          System.out.println(new String(data));
+          System.out.println("CHUNK SIZE: " + data.length);
           chunkmsg = new Message("CHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), data);
 
-          return chunkmsg.toString();
+          return chunkmsg;
 
       } catch (Exception e) {
           e.printStackTrace();
       }
-      return "doesn't exits";
+      return new Message("doesn't exits");
 
     }
 

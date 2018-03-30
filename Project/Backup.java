@@ -91,38 +91,42 @@ public class Backup implements Runnable {
 
     public void read_file()  {
 
-      try{
-        RandomAccessFile aFile = new RandomAccessFile(file_name, "r");
-        FileChannel inChannel = aFile.getChannel();
-        ByteBuffer buffer = ByteBuffer.allocate(64000);
-        int j = 1;
-        while(inChannel.read(buffer) > 0)
-        {
-            buffer.flip();
+        int partCounter = 1;
 
-            byte[] arr = new byte[buffer.remaining()];
+        try {
+          Path path = Paths.get(file_name);
+          String data = new String(Files.readAllBytes(path));
+          String[] bodies = split(data, 64000, 999999999);
+          for(int i = 0; i < bodies.length; i++) {
 
-            buffer.get(arr, 0, arr.length);
+            chunksToSend.add(new Chunk(file_id, partCounter++, replication_deg, bodies[i].getBytes()));
 
-
-            chunksToSend.add(new Chunk(file_id, j++, replication_deg, arr));
-            buffer.clear(); // do something with the data and clear/compact it.
+          }
+        } catch(Exception e){
+          e.printStackTrace();
         }
-        inChannel.close();
-        aFile.close();
-      }
-      catch(Exception e){
-        e.printStackTrace();
-      }
 
     }
 
-   public void send_chunk(int i) {
+    public static String[] split(String text, int chunkSize, int maxLength) {
+        char[] data = text.toCharArray();
+        int len = Math.min(data.length,maxLength);
+        String[] result = new String[(len+chunkSize-1)/chunkSize];
+        int linha = 0;
+        for (int i=0; i < len; i+=chunkSize) {
+            result[linha] = new String(data, i, Math.min(chunkSize,len-i));
+            linha++;
+        }
+        return result;
+    }
+
+    public void send_chunk(int i) {
 
         try{
             Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunkNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
             chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(chunk);
+            System.out.println("Size: " + message.getBody().getBytes().length);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -130,7 +134,7 @@ public class Backup implements Runnable {
     }
 
 
-	public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
+	  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, String file_name, int replication_deg, int port_number, Chat backup_with_channel, ArrayOfFiles currentFiles){
 		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
@@ -140,9 +144,9 @@ public class Backup implements Runnable {
         this.port_number = port_number;
         this.backup_with_channel = backup_with_channel;
         this.currentFiles = currentFiles;
-	}
+    }
 
-  public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number, ArrayOfFiles currentFiles){
+    public Backup(String name, InetAddress mcast_addr, int mcast_port, String command, Chat backup_with_channel, int port_number, ArrayOfFiles currentFiles){
 		    this.name = name;
         this.mcast_addr = mcast_addr;
         this.mcast_port = mcast_port;
@@ -160,6 +164,9 @@ public class Backup implements Runnable {
             Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
 
             FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
+
+
+            System.out.println("Size: " + receivedMessage.getBody().getBytes().length);
 
             out.write(receivedMessage.getBody().getBytes());
             out.close();
@@ -189,7 +196,7 @@ public class Backup implements Runnable {
 
         String[] header = parts[0].split(" ");
 
-        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1]);
+        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1].trim());
 
   }
 
@@ -248,7 +255,7 @@ public class Backup implements Runnable {
         else {
           try {
             while(true) {
-                byte[] incomingData = new byte[64000];
+                byte[] incomingData = new byte[64500];
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
 

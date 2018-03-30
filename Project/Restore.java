@@ -41,6 +41,9 @@ public class Restore implements Runnable {
 
     private Random rand = new Random();
 
+    private String destinationPath = "restore/";
+
+
     //files whose had been BACK UP
     private ArrayOfFiles currentFiles;
 
@@ -141,7 +144,7 @@ public class Restore implements Runnable {
 
           String[] header = parts[0].split(" ");
 
-          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), parts[1]);
+          return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), parts[1].trim());
 
     }
 
@@ -154,6 +157,20 @@ public class Restore implements Runnable {
         catch(Exception e){
             e.printStackTrace();
         }
+    }
+
+    public void write_file(String file_body) {
+      try {
+
+          Path path = Paths.get(destinationPath + file_name);
+          System.out.println(file_body);
+          FileOutputStream out = new FileOutputStream(destinationPath + file_name);
+
+          out.write(file_body.getBytes());
+          out.close();
+      } catch (IOException e) {
+          e.printStackTrace();
+      }
     }
 
     public boolean checkChunkMsgs(Message stringmsg) {
@@ -176,28 +193,33 @@ public class Restore implements Runnable {
 
             //prepare GETCHUNKS array
             make_GETCHUNK_array();
-
+            int number_of_chunks = getchunks.size();
+            int size = 0;
+            String allBodies = "";
             //send previous array to Chat
             send_GETCHUNK_array_toChat();
             try {
               while(true) {
-                byte[] incomingData = new byte[64000];
+                byte[] incomingData = new byte[65000];
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 serverSocket.receive(incomingPacket);
-
+                size++;
                 Message receivedMessage = treatData(incomingData);
                 System.out.println(receivedMessage.getFileId());
                 System.out.println(receivedMessage.getChunkNo());
                 System.out.println(receivedMessage.getSenderId());
-                
+                System.out.println(receivedMessage.getBody().getBytes().length);
+                allBodies += receivedMessage.getBody();
+                if(size == number_of_chunks) {
+                  break;
+                }
               }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-
-            System.out.println("Ready to Receive the Chunks I requested");
-
+            write_file(allBodies);
+            System.exit(3);
         }
 
         //I am PEER-RECEIVER and I will send a requested chunk through here

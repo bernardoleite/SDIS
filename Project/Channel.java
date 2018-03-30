@@ -150,19 +150,11 @@ public class Channel implements Runnable {
         return "doesn't exits";
       Message chunkmsg;
       try {
-          // FileReader reads text files in the default encoding.
-          FileReader fileReader = new FileReader("dest/" + currentFiles.chunksStore.get(i).getId() + ".txt");
 
-          // Always wrap FileReader in BufferedReader.
-          BufferedReader bufferedReader = new BufferedReader(fileReader);
-
-          String response = new String();
-          for (String line; (line = bufferedReader.readLine()) != null; response += line);
-
-          chunkmsg = new Message("CHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), response);
-
-          // Always close files.
-          bufferedReader.close();
+          Path path = Paths.get("dest/" + currentFiles.chunksStore.get(i).getId() + ".txt");
+          String data = new String(Files.readAllBytes(path));
+          System.out.println("CHUNK SIZE: " + data.getBytes().length);
+          chunkmsg = new Message("CHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), data);
 
           return chunkmsg.toString();
 

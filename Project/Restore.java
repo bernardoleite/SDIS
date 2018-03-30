@@ -211,7 +211,7 @@ public class Restore implements Runnable {
                 System.out.println(receivedMessage.getSenderId());
                 System.out.println(receivedMessage.getBody().getBytes().length);
                 allBodies += receivedMessage.getBody();
-                if(size == number_of_chunks) {
+                if(receivedMessage.getBody().getBytes().length < 64000) {
                   break;
                 }
               }
@@ -254,6 +254,8 @@ public class Restore implements Runnable {
                 send_Message(string);
                 chunkmsgs.add(msgsend);
                 System.out.println("SENDING CHUNK");
+                System.out.println("SIZE: " + msgsend.getBody().getBytes().length);
+
               }
 
             }

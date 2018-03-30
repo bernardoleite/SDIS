@@ -91,17 +91,31 @@ public class Backup implements Runnable {
 
     public void read_file()  {
 
-        int partCounter = 1;
+  //      int partCounter = 1;
 
         try {
-          Path path = Paths.get(file_name);
+/*          Path path = Paths.get(file_name);
           String data = new String(Files.readAllBytes(path));
           String[] bodies = split(data, 64000, 999999999);
           for(int i = 0; i < bodies.length; i++) {
 
             chunksToSend.add(new Chunk(file_id, partCounter++, replication_deg, bodies[i].getBytes()));
+*/
+
+          RandomAccessFile aFile = new RandomAccessFile(file_name, "r");
+          FileChannel inChannel = aFile.getChannel();
+          ByteBuffer buffer = ByteBuffer.allocate(64000);
+          int j = 1;
+          while(inChannel.read(buffer) > 0)	{
+             buffer.flip();
+             byte[] arr = new byte[buffer.remaining()];
+             buffer.get(arr, 0, arr.length);
+             chunksToSend.add(new Chunk(file_id, j++, replication_deg, arr));
+             buffer.clear(); // do something with the data and clear/compact it.
 
           }
+          inChannel.close();
+          aFile.close();
         } catch(Exception e){
           e.printStackTrace();
         }
@@ -126,7 +140,7 @@ public class Backup implements Runnable {
             Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), chunksToSend.get(i).getFileId(), chunksToSend.get(i).getChunkNo(), chunksToSend.get(i).getReplication_Deg(), new String(chunksToSend.get(i).getBody()));
             chunk = new DatagramPacket(message.toString().getBytes() ,message.toString().getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(chunk);
-            System.out.println("Size: " + message.getBody().getBytes().length);
+            System.out.println("Chunk: " + message.getBody());
         }
         catch(Exception e){
             e.printStackTrace();
@@ -164,9 +178,8 @@ public class Backup implements Runnable {
             Path path = Paths.get(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
 
             FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo() + ".txt");
+            System.out.println("Chunk: \r\n" + receivedMessage.getBody());
 
-
-            System.out.println("Size: " + receivedMessage.getBody().getBytes().length);
 
             out.write(receivedMessage.getBody().getBytes());
             out.close();
@@ -196,7 +209,7 @@ public class Backup implements Runnable {
 
         String[] header = parts[0].split(" ");
 
-        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1].trim());
+        return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), parts[1]);
 
   }
 
@@ -264,6 +277,7 @@ public class Backup implements Runnable {
                 Message receivedMessage = treatData(incomingData);
 
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
+                System.out.println("Chunk: \r\n" + receivedMessage.getBody().getBytes());
 
                 if(i == -1)
                   currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getBody().getBytes().length));

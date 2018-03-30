@@ -54,6 +54,7 @@ public class Restore implements Runnable {
     private boolean receivedChunk = false;
 
     private ArrayList<Message> chunkmsgs = new ArrayList<Message>();
+    private ArrayList<Message> restoredChunk = new ArrayList<Message>();
 
     public class Listener_Restore implements Runnable {
 
@@ -182,6 +183,19 @@ public class Restore implements Runnable {
         }
         return false;
     }
+
+
+    public boolean hasRestoredChunk(Message stringmsg) {
+        for (int i = 0; i < restoredChunk.size(); i++) {
+
+          if(restoredChunk.get(i).getFileId().equals(stringmsg.getFileId()) && restoredChunk.get(i).getChunkNo() == stringmsg.getChunkNo()) {
+            return true;
+          }
+        }
+        return false;
+    }
+
+
 	  public void run() {
 
         connect_multicast();
@@ -204,14 +218,18 @@ public class Restore implements Runnable {
 
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 serverSocket.receive(incomingPacket);
-                size++;
+
                 Message receivedMessage = treatData(incomingData);
+                if(!hasRestoredChunk(receivedMessage)) {
+                  size++;
+                  allBodies += receivedMessage.getBody();
+                  restoredChunk.add(receivedMessage);
+                }
                 System.out.println(receivedMessage.getFileId());
                 System.out.println(receivedMessage.getChunkNo());
                 System.out.println(receivedMessage.getSenderId());
                 System.out.println(receivedMessage.getBody().getBytes().length);
-                allBodies += receivedMessage.getBody();
-                if(receivedMessage.getBody().getBytes().length < 64000) {
+                if(size == number_of_chunks) {
                   break;
                 }
               }

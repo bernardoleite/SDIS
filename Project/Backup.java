@@ -89,50 +89,22 @@ public class Backup implements Runnable {
         return filename.substring(0, extensionIndex);
     }
 
-    public static final byte[] loadFile(File file) throws FileNotFoundException {
-  		FileInputStream inputStream = new FileInputStream(file);
-
-  		byte[] data = new byte[(int) file.length()];
-
-  		try {
-  			inputStream.read(data);
-  			inputStream.close();
-  		} catch (IOException e) {
-  			e.printStackTrace();
-  		}
-
-  		return data;
-  	}
-
 
     public void read_file()  {
 
 
         try {
 
-            byte[] fileData = loadFile(new File(file_name));
-
-      			int numChunks = fileData.length / 64000 + 1;
-
-
-      			ByteArrayInputStream stream = new ByteArrayInputStream(fileData);
-      			byte[] streamConsumer = new byte[64000];
-
-      			for (int i = 0; i < numChunks; i++) {
-      				byte[] chunkData;
-
-      				if (i == numChunks - 1 && fileData.length % 64000 == 0) {
-      					chunkData = new byte[0];
-      				} else {
-      					int numBytesRead = stream.read(streamConsumer, 0,
-      							streamConsumer.length);
-
-      					chunkData = Arrays.copyOfRange(streamConsumer, 0,
-      							numBytesRead);
-      				}
-
-      				chunksToSend.add(new Chunk(file_id, i+1, 1, chunkData));
-
+            RandomAccessFile aFile = new RandomAccessFile(file_name, "r");
+            FileChannel inChannel = aFile.getChannel();
+            ByteBuffer buffer = ByteBuffer.allocate(64000);
+            int j = 1;
+            while(inChannel.read(buffer) > 0)	{
+               buffer.flip();
+               byte[] arr = new byte[buffer.remaining()];
+               buffer.get(arr, 0, arr.length);
+               chunksToSend.add(new Chunk(file_id, j++, replication_deg, arr));
+               buffer.clear(); // do something with the data and clear/compact it.
       			}
         } catch(Exception e){
           e.printStackTrace();
@@ -201,7 +173,6 @@ public class Backup implements Runnable {
 
             FileOutputStream out = new FileOutputStream(destinationPath + receivedMessage.getFileId() + "." + receivedMessage.getChunkNo());
 
-            System.out.println(receivedMessage.getBody().length);
             out.write(receivedMessage.getBody());
             out.close();
         } catch (IOException e) {
@@ -279,11 +250,11 @@ public class Backup implements Runnable {
 
   }
   public boolean hasSpace(int ChunkSize){
-        double size = (double) ChunkSize; 
+        double size = (double) ChunkSize;
         double thousand = 1000.0;
-        if((currentFiles.currentSpace + size/thousand) < currentFiles.maximumSpace) 
+        if((currentFiles.currentSpace + size/thousand) < currentFiles.maximumSpace)
             return true;
-        else 
+        else
             return false;
   }
 
@@ -304,6 +275,7 @@ public class Backup implements Runnable {
             //check if replication degreee is equal to store messages on chat inbox
             int j = 1000;
             do {
+                
                 backup_with_channel.clearInbox();
                 send_chunk(i);
                 try {
@@ -312,6 +284,9 @@ public class Backup implements Runnable {
                   e.printStackTrace();
                 }
                 j = j*2;
+                for(int k = 0; k < backup_with_channel.getInbox().size(); k++) {
+                  System.out.println(backup_with_channel.getInbox().get(k).trim());
+                }
             } while(backup_with_channel.getInbox().size() < replication_deg);
             currentFiles.files.get(currentFiles.files.size()-1).addChunkInfo(new ChunkInfo(file_id + "." + Integer.toString(i+1), backup_with_channel.getInbox().size(), replication_deg, chunksToSend.get(i).getBody().length));
             System.out.println("Sending next CHUNK!");

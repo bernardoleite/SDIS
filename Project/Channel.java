@@ -62,11 +62,16 @@ public class Channel implements Runnable {
                 serverSocket.receive(incomingPacket);
 
                 Message receivedMessage = treatData(incomingData);
-                int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
-                if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number && i != -1) {
-                  currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
+
+
+                if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
+                  int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
+                  if(i != -1) {
+                    currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
+                    serialize_Object();
+                  }
                 }
-                if(receivedMessage.getCommand().equals("REMOVED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) 
+                if(receivedMessage.getCommand().equals("REMOVED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number)
                   System.out.println("REMOVED");
 
                 if(receivedMessage.getCommand().equals("DELETE") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
@@ -114,6 +119,7 @@ public class Channel implements Runnable {
 
 
                 send_Message(string);
+                backup_with_channel.setMessage("nada");
                 try {
                   int j = rand.nextInt(400);
 
@@ -156,9 +162,7 @@ public class Channel implements Runnable {
 
           Path path = Paths.get("dest/" + currentFiles.chunksStore.get(i).getId());
           byte[] data = Files.readAllBytes(path);
-          System.out.println(currentFiles.chunksStore.get(i).getId());
-          System.out.println(new String(data));
-          System.out.println("CHUNK SIZE: " + data.length);
+
           chunkmsg = new Message("CHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), data);
 
           return chunkmsg;
@@ -175,7 +179,6 @@ public class Channel implements Runnable {
         try (DirectoryStream<Path> newDirectoryStream = Files.newDirectoryStream(Paths.get(path), prefix + "*")) {
             for (final Path newDirectoryStreamItem : newDirectoryStream) {
                 String id = removeExtension(newDirectoryStreamItem.getFileName().toString());
-                System.out.println(id);
                 int i = currentFiles.hasChunkStore(id);
                 currentFiles.chunksStore.remove(i);
                 Files.delete(newDirectoryStreamItem);
@@ -204,7 +207,7 @@ public class Channel implements Runnable {
 
     public void send_Message(String message){
         try{
-
+            System.out.println("SENDING MESSAGE");
             packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(packetToSend);
 
@@ -290,9 +293,9 @@ public class Channel implements Runnable {
         increment = increment + (double) currentFiles.chunksStore.get(i).getSize()/1000.0;
         System.out.println("tamanho deste: " + currentFiles.chunksStore.get(i).getSize()/1000.0);
         chunksSelected.add(i);
-        if(increment >= qtyToRemove) 
+        if(increment >= qtyToRemove)
           break;
-        else 
+        else
           continue;
 
     }
@@ -388,7 +391,7 @@ public class Channel implements Runnable {
           serialize_Object();
         }
         else if (command.equals("REMOVE")) {
-          
+
           double qtyToRemove = currentFiles.currentSpace - currentFiles.maximumSpace;
 
           System.out.println("Quantidade a remover: " + qtyToRemove);
@@ -396,7 +399,7 @@ public class Channel implements Runnable {
           ArrayList<Integer> chunksSelected = new ArrayList<Integer>();
 
           chunksSelected = chooseChunksToRemove(qtyToRemove);
-      
+
           for(int j = 0; j < chunksSelected.size(); j++){
 
             String auxString = currentFiles.chunksStore.get(chunksSelected.get(j)).getId();
@@ -407,7 +410,7 @@ public class Channel implements Runnable {
             Files.delete(path);
             } catch (Exception e) {
             e.printStackTrace();
-            }            
+            }
 
             Message msg = new Message("REMOVED", 1, Integer.toString(port_number), parts[0], Integer.parseInt(parts[1]));
             send_Message(msg.toString());

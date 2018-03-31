@@ -17,7 +17,7 @@ public class Peer1 {
     private ArrayOfFiles currentFiles = new ArrayOfFiles();
 
     private String filebin = "data.bin";
-
+    private double maxAllowed = 8000.0;
 
     public void deserialize_Object(){
 
@@ -31,7 +31,20 @@ public class Peer1 {
       }
 
   }
+  public void serialize_Object(){
 
+    filebin = "data.bin";
+    try{
+      ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(filebin));
+      os.writeObject(currentFiles);
+      os.close();
+    }
+    catch(Exception e)
+    {
+        e.printStackTrace();
+    }
+
+  }
     public void run(String[] args, String command) throws Exception {
 
       /*  se existe data.bin
@@ -118,7 +131,50 @@ public class Peer1 {
             multicast_channel.start();
 
         }
+        if(command.equals("RECLAIM")) {
 
+            if(Double.parseDouble(args[2]) == 0){
+                System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                currentFiles.setMaximumSpace(maxAllowed);
+                System.out.println("Current Maximum Storage: " + maxAllowed + " KBytes");
+                System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+            }
+            else if(Double.parseDouble(args[2]) == maxAllowed){
+                System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                currentFiles.setMaximumSpace(maxAllowed);
+                System.out.println("Current Maximum Storage: " + maxAllowed + " KBytes");
+                System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+            }
+            else if(Double.parseDouble(args[2]) > maxAllowed){
+                System.out.println("Rejected... Max Disk Usage is " + maxAllowed + " KBytes");
+                System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+            }
+            else if(Double.parseDouble(args[2]) < maxAllowed && Double.parseDouble(args[2]) > currentFiles.maximumSpace){
+                System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                currentFiles.setMaximumSpace(Double.parseDouble(args[2]));
+                System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+            }
+            else if(Double.parseDouble(args[2]) < maxAllowed && Double.parseDouble(args[2]) < currentFiles.maximumSpace && Double.parseDouble(args[2]) > currentFiles.getFolderSize()){
+                System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                currentFiles.setMaximumSpace(Double.parseDouble(args[2]));
+                System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+            }
+            else if(Double.parseDouble(args[2]) < maxAllowed && Double.parseDouble(args[2]) < currentFiles.maximumSpace && Double.parseDouble(args[2]) < currentFiles.getFolderSize()){
+                System.out.println("Accepted with Risk...Some Chunks have to be removed!");
+                System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                currentFiles.setMaximumSpace(Double.parseDouble(args[2]));
+                System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+                System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+
+
+                Thread multicast_channel = new Thread(new Channel("IP:PORT", mcast_addr, mcast_channel_port, "REMOVE", port_number, backup_with_channel, restore_with_channel, currentFiles));
+                multicast_channel.start();
+            }
+
+        }
         Thread.sleep(500);
 
     }

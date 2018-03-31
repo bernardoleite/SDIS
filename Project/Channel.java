@@ -66,6 +66,8 @@ public class Channel implements Runnable {
                 if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number && i != -1) {
                   currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
                 }
+                if(receivedMessage.getCommand().equals("REMOVED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) 
+                  System.out.println("REMOVED");
 
                 if(receivedMessage.getCommand().equals("DELETE") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
                   System.out.println("DELETE CHUNKS");
@@ -279,6 +281,25 @@ public class Channel implements Runnable {
 
   }
 
+  public ArrayList<Integer> chooseChunksToRemove(double qtyToRemove){
+
+    double increment = 0.0;
+    ArrayList<Integer> chunksSelected = new ArrayList<Integer>();
+
+    for (int i = 0 ; i < currentFiles.chunksStore.size(); i++){
+        increment = increment + (double) currentFiles.chunksStore.get(i).getSize()/1000.0;
+        System.out.println("tamanho deste: " + currentFiles.chunksStore.get(i).getSize()/1000.0);
+        chunksSelected.add(i);
+        if(increment >= qtyToRemove) 
+          break;
+        else 
+          continue;
+
+    }
+
+    return chunksSelected;
+  }
+
 	public void run()  {
 
         connect_multicast();
@@ -365,6 +386,55 @@ public class Channel implements Runnable {
           }
           currentFiles.files.remove(i);
           serialize_Object();
+        }
+        else if (command.equals("REMOVE")) {
+          
+          double qtyToRemove = currentFiles.currentSpace - currentFiles.maximumSpace;
+
+          System.out.println("Quantidade a remover: " + qtyToRemove);
+
+          ArrayList<Integer> chunksSelected = new ArrayList<Integer>();
+
+          chunksSelected = chooseChunksToRemove(qtyToRemove);
+      
+          for(int j = 0; j < chunksSelected.size(); j++){
+
+            String auxString = currentFiles.chunksStore.get(chunksSelected.get(j)).getId();
+            String[] parts = auxString.split("\\.");
+            Path path = Paths.get("dest/"+auxString);
+
+            try {
+            Files.delete(path);
+            } catch (Exception e) {
+            e.printStackTrace();
+            }            
+
+            Message msg = new Message("REMOVED", 1, Integer.toString(port_number), parts[0], Integer.parseInt(parts[1]));
+            send_Message(msg.toString());
+
+
+            try {
+              int k = rand.nextInt(400);
+
+              Thread.sleep(k);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
+
+          }
+          for (int p = chunksSelected.size()-1; p >= 0; p--) {
+             currentFiles.chunksStore.remove(chunksSelected.get(p));
+          }
+                      System.out.println(currentFiles.chunksStore.size());
+
+          //encontrar o chunk Id e No
+
+          //criar mensagem
+
+          //enviar mensagem
+
+          //remover chunk
+
         }
 
 

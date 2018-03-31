@@ -1,3 +1,5 @@
+package compile;
+
 public class Message {
 
   private String command;

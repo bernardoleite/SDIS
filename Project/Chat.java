@@ -1,3 +1,5 @@
+package compile;
+
 import java.util.*;
 
 class Chat {

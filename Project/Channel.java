@@ -1,3 +1,5 @@
+package compile;
+
 import java.util.*;
 import java.io.*;
 import java.net.*;
@@ -158,12 +160,7 @@ public class Channel implements Runnable {
             filename = s.substring(lastSeparatorIndex + 1);
         }
 
-        // Remove the extension.
-        int extensionIndex = filename.lastIndexOf(".");
-        if (extensionIndex == -1)
-            return filename;
-
-        return filename.substring(0, extensionIndex);
+        return filename;
     }
 
     public Message getChunk(Message receivedMessage) {

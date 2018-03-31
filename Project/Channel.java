@@ -20,7 +20,7 @@ public class Channel implements Runnable {
     private int port_number;
 
     //Name of this Thread
-	private String name;
+	  private String name;
 
     //Ip and Port
     private InetAddress mcast_addr;
@@ -44,6 +44,18 @@ public class Channel implements Runnable {
     private Random rand = new Random();
 
     private ArrayOfFiles currentFiles;
+
+    public void take_actions(Message receivedMessage){
+      String thischunkId = receivedMessage.getFileId() + "." + receivedMessage.getChunkNo();
+      int i = currentFiles.hasChunkStore(thischunkId);
+      if(i != -1){
+        currentFiles.chunksStore.get(i).decrementPerceivedReplicationDeg();
+      }
+      if(currentFiles.chunksStore.get(i).getPerceivedReplicationDeg() < currentFiles.chunksStore.get(i).getDesiredReplicationDeg()){
+        System.out.println("Do backup");
+      }
+      serialize_Object();
+    }
 
 
     public class Listener_Channel implements Runnable {
@@ -71,8 +83,10 @@ public class Channel implements Runnable {
                     serialize_Object();
                   }
                 }
-                if(receivedMessage.getCommand().equals("REMOVED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number)
+                if(receivedMessage.getCommand().equals("REMOVED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number){
                   System.out.println("REMOVED");
+                  take_actions(receivedMessage);
+                }
 
                 if(receivedMessage.getCommand().equals("DELETE") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
                   System.out.println("DELETE CHUNKS");
@@ -85,7 +99,6 @@ public class Channel implements Runnable {
 
 
                   if(!chunkmsg.getCommand().equals("doesn't exits")) {
-                    System.out.println("LDSDGSGMSDGMSLFSMLSBF");
                     restore_with_channel.setMsgChunk(chunkmsg);
                   }
                 }
@@ -239,7 +252,7 @@ public class Channel implements Runnable {
 
         String[] header = parts[0].split(" ");
 
-        if(header[0].equals("STORED") || header[0].equals("GETCHUNK"))
+        if(header[0].equals("STORED") || header[0].equals("GETCHUNK") || header[0].equals("REMOVED"))
           return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]));
 
         else
@@ -425,10 +438,11 @@ public class Channel implements Runnable {
             }
 
           }
-          for (int p = chunksSelected.size()-1; p >= 0; p--) {
-             currentFiles.chunksStore.remove(chunksSelected.get(p));
-          }
-                      System.out.println(currentFiles.chunksStore.size());
+          for (int p = 0; p < chunksSelected.size(); p++) {
+                 currentFiles.chunksStore.remove(chunksSelected.get(p)-p);
+             }
+            System.out.println(currentFiles.chunksStore.size());
+            serialize_Object();
 
           //encontrar o chunk Id e No
 

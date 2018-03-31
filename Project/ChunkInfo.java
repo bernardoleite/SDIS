@@ -36,4 +36,7 @@ public class ChunkInfo implements Serializable{
 	public void incrementPerceivedReplicationDeg() {
 		PerceivedReplicationDeg++;
 	}
+	public void decrementPerceivedReplicationDeg() {
+		PerceivedReplicationDeg--;
+	}
 }

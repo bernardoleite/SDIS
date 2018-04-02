@@ -1,7 +1,13 @@
-Compilar:
+Mudar os comandos em initiate_win.bat se utiliza windows ou
+Mudar os comandos em initiate_sol.bat se utiliza Solaris Os
+Inicialmente está um exemplo em que a pasta src está localizada em C:\Users\jsaraiva\github\SDIS\Project
+
+Os seguintes são os comandos 
+
+1. Compilar:
   javac -d destDir *.java
 
-Executar:
+2. Iniciar rmiregistry:
 
   Windows:
     start rmiregistry
@@ -10,7 +16,8 @@ Executar:
     rmiregistry &
 
 
-Para Iniciar um Peer em modo Receiver:
+3. 
+Iniciar um Peer em modo Receiver:
 
   Windows:
     start java -classpath classDir -Djava.rmi.server.codebase=file:classDir/ compile.Peer <port_number>
@@ -22,7 +29,7 @@ Para Iniciar um Peer em modo Receiver:
 
     java -classpath classDir compile.TestApp <port_number>
 
-Para Iniciar um Peer em modo Backup:
+Iniciar um Peer em modo Backup:
 
   Windows:
     start java -classpath classDir -Djava.rmi.server.codebase=file:classDir/ compile.Peer <port_number>
@@ -35,7 +42,7 @@ Para Iniciar um Peer em modo Backup:
     java -classpath classDir compile.TestApp <port_number> BACKUP <file_name> <replication_deg>
 
 
-Para Iniciar um Peer em modo Restore:
+Iniciar um Peer em modo Restore:
 
   Windows:
     start java -classpath classDir -Djava.rmi.server.codebase=file:classDir/ compile.Peer <port_number>
@@ -48,7 +55,7 @@ Para Iniciar um Peer em modo Restore:
     java -classpath classDir compile.TestApp <port_number> RESTORE <file_name>
 
 
-Para Iniciar um Peer em modo Delete:
+Iniciar um Peer em modo Delete:
 
   Windows:
     start java -classpath classDir -Djava.rmi.server.codebase=file:classDir/ compile.Peer <port_number>
@@ -61,7 +68,7 @@ Para Iniciar um Peer em modo Delete:
     java -classpath classDir compile.TestApp <port_number> DELETE <file_name>
 
 
-Para Iniciar um Peer em modo Reclaim:
+Iniciar um Peer em modo Reclaim:
 
   Windows:
     start java -classpath classDir -Djava.rmi.server.codebase=file:classDir/ compile.Peer <port_number>
@@ -74,7 +81,7 @@ Para Iniciar um Peer em modo Reclaim:
     java -classpath classDir compile.TestApp <port_number> RECLAIM <disk_space>
 
 
-Para Iniciar um Peer em modo State:
+Iniciar um Peer em modo State:
 
   Windows:
     start java -classpath classDir -Djava.rmi.server.codebase=file:classDir/ compile.Peer <port_number>

@@ -47,6 +47,8 @@ public class Channel implements Runnable {
 
     private ArrayOfFiles currentFiles;
 
+    private ArrayList<String> auxStoreSenders = new ArrayList<String>();
+
     public void take_actions(Message receivedMessage) throws Exception{
       String thischunkId = receivedMessage.getFileId() + "." + receivedMessage.getChunkNo();
       int i = currentFiles.hasChunkStore(thischunkId);
@@ -107,7 +109,10 @@ public class Channel implements Runnable {
                   System.out.println("Received Stored msg");
 
                   int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
-                  if(i != -1) {
+
+                  String aux = receivedMessage.getSenderId() + receivedMessage.getFileId() + "." +Integer.toString(receivedMessage.getChunkNo());
+                  if(i != -1 && !auxStoreSenders.contains(aux)) {
+                    auxStoreSenders.add(aux);
                     currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
                     serialize_Object();
                   }
@@ -142,6 +147,7 @@ public class Channel implements Runnable {
         }
     }
 
+
     public class Backup_CheckMsg implements Runnable {
 
         String threadName;
@@ -162,9 +168,7 @@ public class Channel implements Runnable {
                     }
                 }
 
-
                 send_Message(string);
-                backup_with_channel.setMessage("nada");
                 try {
                   int j = rand.nextInt(400);
 
@@ -172,6 +176,7 @@ public class Channel implements Runnable {
                 } catch (Exception e) {
                   e.printStackTrace();
                 }
+                backup_with_channel.setMessage("nada");
 
             }
         }

@@ -58,6 +58,50 @@ public class Backup implements Runnable {
     private String file_id;
 
 
+    public class Backup_CheckEmg implements Runnable {
+
+        String threadName;
+
+        public Backup_CheckEmg(String name){
+            threadName = name;
+        }
+
+        public void run(){
+            while(true){
+
+                while(true){
+                    //Removed print
+                    if(!backup_with_channel.getEmergency().equals("nada")) {
+                        break;
+                    }
+                }
+
+                send_Message(backup_with_channel.getEmergencyPutChunk());
+                backup_with_channel.setEmergency("nada");
+                try {
+                  int j = rand.nextInt(400);
+
+                  Thread.sleep(j);
+                } catch (Exception e) {
+                  e.printStackTrace();
+                }
+
+            }
+        }
+    }
+
+    public void send_Message(byte[] message){
+        try{
+            System.out.println("I will send this message: "+message.length);
+            DatagramPacket packetToSend = new DatagramPacket(message ,message.length, mcast_addr, mcast_port);
+            serverSocket.send(packetToSend);
+
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
     public void connect_multicast() {
 
         try{
@@ -265,6 +309,10 @@ public class Backup implements Runnable {
 		    System.out.println("Backup Service Enabled!");
 
         connect_multicast();
+
+        //This thread will be listening Chat with Channel and in Case of Emergency PutChunk sends it.
+        Thread backup_check_emergency = new Thread(new Backup_CheckEmg("backup_check_emergency"));
+        backup_check_emergency.start();
 
         if(command.equals("BACKUP")) {
 

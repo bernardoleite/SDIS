@@ -47,16 +47,45 @@ public class Channel implements Runnable {
 
     private ArrayOfFiles currentFiles;
 
-    public void take_actions(Message receivedMessage){
+    public void take_actions(Message receivedMessage) throws Exception{
       String thischunkId = receivedMessage.getFileId() + "." + receivedMessage.getChunkNo();
       int i = currentFiles.hasChunkStore(thischunkId);
       if(i != -1){
+
         currentFiles.chunksStore.get(i).decrementPerceivedReplicationDeg();
-      }
-      if(currentFiles.chunksStore.get(i).getPerceivedReplicationDeg() < currentFiles.chunksStore.get(i).getDesiredReplicationDeg()){
-        System.out.println("Do backup");
+
+        //backup for this chunk
+        if(currentFiles.chunksStore.get(i).getPerceivedReplicationDeg() < currentFiles.chunksStore.get(i).getDesiredReplicationDeg()){
+
+              Path path = Paths.get("dest/"+thischunkId);
+
+              byte[] data = Files.readAllBytes(path);
+              
+              Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), 1, data);
+
+              byte[] send = concatBytes(message.toString().getBytes(), message.getBody());
+
+              System.out.println(message.toString());
+              System.out.println(message.getBody().length);
+              System.out.println(send.length);
+
+              backup_with_channel.setEmergency("agora");
+              backup_with_channel.setEmergencyPutChunk(send);
+          }
       }
       serialize_Object();
+    }
+
+    public static byte[] concatBytes(byte[] a, byte[] b) {
+          int aLen = a.length;
+          int bLen = b.length;
+
+          byte[] c = new byte[aLen + bLen];
+
+          System.arraycopy(a, 0, c, 0, aLen);
+          System.arraycopy(b, 0, c, aLen, bLen);
+
+          return c;
     }
 
 

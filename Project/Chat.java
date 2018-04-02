@@ -30,7 +30,6 @@ class Chat {
 
    public void addMsgInbox(String message) {
    		inbox.add(message);
-         System.out.println("Inbox: " + inbox.size());
    }
 
    public void clearInbox() {

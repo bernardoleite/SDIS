@@ -60,14 +60,10 @@ public class Channel implements Runnable {
               Path path = Paths.get("dest/"+thischunkId);
 
               byte[] data = Files.readAllBytes(path);
-              
+
               Message message = new Message("PUTCHUNK", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo(), 1, data);
 
               byte[] send = concatBytes(message.toString().getBytes(), message.getBody());
-
-              System.out.println(message.toString());
-              System.out.println(message.getBody().length);
-              System.out.println(send.length);
 
               backup_with_channel.setEmergency("agora");
               backup_with_channel.setEmergencyPutChunk(send);
@@ -108,6 +104,8 @@ public class Channel implements Runnable {
 
 
                 if(receivedMessage.getCommand().equals("STORED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
+                  System.out.println("Received Stored msg");
+
                   int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
                   if(i != -1) {
                     currentFiles.chunksStore.get(i).incrementPerceivedReplicationDeg();
@@ -115,17 +113,20 @@ public class Channel implements Runnable {
                   }
                 }
                 if(receivedMessage.getCommand().equals("REMOVED") && Integer.parseInt(receivedMessage.getSenderId()) != port_number){
-                  System.out.println("REMOVED");
+                  System.out.println("Received Removed msg");
+
                   take_actions(receivedMessage);
                 }
 
                 if(receivedMessage.getCommand().equals("DELETE") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
-                  System.out.println("DELETE CHUNKS");
+                  System.out.println("Received Delete msg");
+
                   deleteChunks(receivedMessage.getFileId());
                 }
 
                 if(receivedMessage.getCommand().equals("GETCHUNK") && Integer.parseInt(receivedMessage.getSenderId()) != port_number) {
-                  System.out.println("GET CHUNK");
+                  System.out.println("Received GetChunk msg");
+
                   Message chunkmsg = getChunk(receivedMessage);
 
 
@@ -193,6 +194,7 @@ public class Channel implements Runnable {
     }
 
     public Message getChunk(Message receivedMessage) {
+
       int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + receivedMessage.getChunkNo());
       if (i == -1)
         return new Message("doesn't exits");
@@ -246,7 +248,6 @@ public class Channel implements Runnable {
 
     public void send_Message(String message){
         try{
-            System.out.println("SENDING MESSAGE");
             packetToSend = new DatagramPacket(message.getBytes() ,message.getBytes().length, mcast_addr, mcast_port);
             serverSocket.send(packetToSend);
 
@@ -330,7 +331,6 @@ public class Channel implements Runnable {
 
     for (int i = 0 ; i < currentFiles.chunksStore.size(); i++){
         increment = increment + (double) currentFiles.chunksStore.get(i).getSize()/1000.0;
-        System.out.println("tamanho deste: " + currentFiles.chunksStore.get(i).getSize()/1000.0);
         chunksSelected.add(i);
         if(increment >= qtyToRemove)
           break;
@@ -351,13 +351,12 @@ public class Channel implements Runnable {
         //Send Store and escuta mc
         if(command.equals("RECEIVER")) {
 
+          //Thread Responsible to, in case of Backup, check Message String and Send Message ----- BACKUP
+          Thread backup_check_message = new Thread(new Backup_CheckMsg("backup_check_message"));
+          backup_check_message.start();
 
-        //Thread Responsible to, in case of Backup, check Message String and Send Message ----- BACKUP
-        Thread backup_check_message = new Thread(new Backup_CheckMsg("backup_check_message"));
-        backup_check_message.start();
-
-        Thread listener_channel = new Thread(new Listener_Channel());
-        listener_channel.start();
+          Thread listener_channel = new Thread(new Listener_Channel());
+          listener_channel.start();
 
         }
         else if (command.equals("BACKUP")) {
@@ -408,6 +407,7 @@ public class Channel implements Runnable {
 
         //Send DELETE
         else if (command.equals("DELETE")) {
+
           int i = currentFiles.hasFile(file_name);
 
           if(i == -1) {
@@ -428,6 +428,9 @@ public class Channel implements Runnable {
           }
           currentFiles.files.remove(i);
           serialize_Object();
+
+          System.exit(7);
+
         }
         else if (command.equals("REMOVE")) {
 
@@ -466,18 +469,9 @@ public class Channel implements Runnable {
           }
           for (int p = 0; p < chunksSelected.size(); p++) {
                  currentFiles.chunksStore.remove(chunksSelected.get(p)-p);
-             }
-            System.out.println(currentFiles.chunksStore.size());
+          }
             serialize_Object();
-
-          //encontrar o chunk Id e No
-
-          //criar mensagem
-
-          //enviar mensagem
-
-          //remover chunk
-
+            System.exit(5);
         }
 
 

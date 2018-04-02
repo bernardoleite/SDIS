@@ -92,7 +92,6 @@ public class Backup implements Runnable {
 
     public void send_Message(byte[] message){
         try{
-            System.out.println("I will send this message: "+message.length);
             DatagramPacket packetToSend = new DatagramPacket(message ,message.length, mcast_addr, mcast_port);
             serverSocket.send(packetToSend);
 
@@ -166,7 +165,6 @@ public class Backup implements Runnable {
             chunk = new DatagramPacket(send, send.length, mcast_addr, mcast_port);
 
             serverSocket.send(chunk);
-            System.out.println("SIZE OF BODY: " + message.getBody().length);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -232,7 +230,7 @@ public class Backup implements Runnable {
         Path file = Paths.get(file_name);
         BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
         Sha sha = new Sha();
-        file_id = sha.hash256(attr.toString());
+        file_id = sha.hash256(attr.lastModifiedTime());
       } catch(Exception e) {
         e.printStackTrace();
       }
@@ -245,7 +243,6 @@ public class Backup implements Runnable {
 
         String[] parts = string.split("\r\n\r\n");
         byte[] body = extractBody(incomingPacket);
-        System.out.println("SIZE OF BODY: " +body.length);
         String[] header = parts[0].split(" ");
 
         return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), Integer.parseInt(header[5]), body);
@@ -261,7 +258,6 @@ public class Backup implements Runnable {
     int headerLinesLengthSum = 0;
     int numLines = 0;
     byte[] body;
-    String crlf = "/r/n";
     do {
       try {
         line = reader.readLine();
@@ -306,7 +302,6 @@ public class Backup implements Runnable {
 
 	public void run()  {
 
-		    System.out.println("Backup Service Enabled!");
 
         connect_multicast();
 
@@ -315,6 +310,8 @@ public class Backup implements Runnable {
         backup_check_emergency.start();
 
         if(command.equals("BACKUP")) {
+          System.out.println("File: " + file_name);
+          System.out.println("Desired Replication Degree: " + replication_deg);
 
           codify_fileId();
           read_file();
@@ -371,7 +368,7 @@ public class Backup implements Runnable {
                     Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
                     backup_with_channel.setMessage(msg.toString());
                     writeBytesToFileNio(receivedMessage);
-                    System.out.println("Chunk received and saved to HDD!");
+                    System.out.println("Chunk received and saved!");
                     serialize_Object();
 
                 }

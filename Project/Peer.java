@@ -9,7 +9,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-public class Peer1 implements RMI_Interface {
+public class Peer implements RMI_Interface {
 
     final static int mcast_backup_port = 8888;
     final static int mcast_channel_port = 4444;
@@ -54,7 +54,8 @@ public class Peer1 implements RMI_Interface {
     }
 
     public void receiver(int port_number) {
-      System.out.println("HERE!!!!!!!!!!!!!!!!!!");
+      System.out.println("Starting a Receiver!");
+
       File f = new File("data.bin");
       if(f.exists() && !f.isDirectory()) {
         deserialize_Object();
@@ -83,6 +84,7 @@ public class Peer1 implements RMI_Interface {
     }
 
     public void reclaim(String value, int port_number) {
+      System.out.println("Starting Reclaim Protocol!");
 
       File f = new File("data.bin");
       if(f.exists() && !f.isDirectory()) {
@@ -106,29 +108,44 @@ public class Peer1 implements RMI_Interface {
           currentFiles.setMaximumSpace(maxAllowed);
           System.out.println("Current Maximum Storage: " + maxAllowed + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+
+          Thread.sleep(3000);
+          System.exit(5);
       }
       else if(Double.parseDouble(value) == maxAllowed){
           System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           currentFiles.setMaximumSpace(maxAllowed);
           System.out.println("Current Maximum Storage: " + maxAllowed + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+
+          Thread.sleep(3000);
+          System.exit(5);
       }
       else if(Double.parseDouble(value) > maxAllowed){
           System.out.println("Rejected... Max Disk Usage is " + maxAllowed + " KBytes");
           System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+
+          Thread.sleep(3000);
+          System.exit(5);
       }
       else if(Double.parseDouble(value) < maxAllowed && Double.parseDouble(value) > currentFiles.maximumSpace){
           System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           currentFiles.setMaximumSpace(Double.parseDouble(value));
           System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+
+          Thread.sleep(3000);
+          System.exit(5);
       }
       else if(Double.parseDouble(value) < maxAllowed && Double.parseDouble(value) < currentFiles.maximumSpace && Double.parseDouble(value) > currentFiles.getFolderSize()){
           System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           currentFiles.setMaximumSpace(Double.parseDouble(value));
           System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+
+          Thread.sleep(3000);
+          System.exit(5);
       }
       else if(Double.parseDouble(value) < maxAllowed && Double.parseDouble(value) < currentFiles.maximumSpace && Double.parseDouble(value) < currentFiles.getFolderSize()){
           System.out.println("Accepted with Risk...Some Chunks have to be removed!");
@@ -144,6 +161,7 @@ public class Peer1 implements RMI_Interface {
     }
 
     public void state() {
+      System.out.println("Starting State Protocol!");
 
       File f = new File("data.bin");
       if(f.exists() && !f.isDirectory()) {
@@ -181,9 +199,13 @@ public class Peer1 implements RMI_Interface {
         System.out.println("Perceived Replication Degree: " + currentFiles.chunksStore.get(i).getPerceivedReplicationDeg());
         System.out.println();
       }
+      Thread.sleep(3000);
+      System.exit(6);
     }
 
     public void delete(String file_name, int port_number) {
+      System.out.println("Starting Delete Protocol!");
+
 
       File f = new File("data.bin");
       if(f.exists() && !f.isDirectory()) {
@@ -223,6 +245,8 @@ public class Peer1 implements RMI_Interface {
 
 
     public void backup(String file_name, int replication_deg, int port_number) {
+      System.out.println("Starting Backup Protocol!");
+
       File f = new File("data.bin");
       if(f.exists() && !f.isDirectory()) {
         deserialize_Object();
@@ -249,7 +273,7 @@ public class Peer1 implements RMI_Interface {
 
         try
         {
-          Peer1 obj = new Peer1();
+          Peer1 obj = new Peer();
           RMI_Interface stub = (RMI_Interface) UnicastRemoteObject.exportObject(obj, 0);
 
           // Bind the remote object's stub in the registry

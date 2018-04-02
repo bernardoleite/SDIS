@@ -20,14 +20,14 @@ public class TestApp {
     public void run(String[] args) {
       String command = checkCommands(args);
       String host = (args.length < 1) ? null : args[0];
-      System.out.println(command);
+      System.out.println("Executing: " + command);
+      System.out.println("Port Number: " + port_number);
 
       try {
         TimeUnit.SECONDS.sleep(1);
 
           Registry registry = LocateRegistry.getRegistry("localhost");
           RMI_Interface stub = (RMI_Interface) registry.lookup(Integer.toString(port_number));
-          System.out.println(command);
 
           if(command.equals("RECEIVER")) {
             System.out.println(port_number);

@@ -21,7 +21,7 @@ public class Restore implements Runnable {
     private int port_number;
 
     //Name of this Thread
-	private String name;
+	  private String name;
 
     //Ip and Port
     private InetAddress mcast_addr;
@@ -51,9 +51,6 @@ public class Restore implements Runnable {
 
     //array of GETCHUNKs used to send to Chat
     private ArrayList<String> getchunks;
-
-
-    private boolean receivedChunk = false;
 
     private ArrayList<Message> chunkmsgs = new ArrayList<Message>();
     private ArrayList<Message> restoredChunk = new ArrayList<Message>();
@@ -146,9 +143,7 @@ public class Restore implements Runnable {
           String[] parts = string.split("\r\n\r\n");
           byte[] body = extractBody(incomingPacket);
           String[] header = parts[0].split(" ");
-          System.out.println("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
           System.out.println(body);
-          System.out.println("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
           return new Message(header[0], Integer.parseInt(header[1]), header[2], header[3], Integer.parseInt(header[4]), body);
 
     }
@@ -269,13 +264,7 @@ public class Restore implements Runnable {
                   allBodies = concatBytes(allBodies, receivedMessage.getBody());
                   restoredChunk.add(receivedMessage);
                 }
-                System.out.println(receivedMessage.getFileId());
-                System.out.println(receivedMessage.getChunkNo());
-                System.out.println(receivedMessage.getSenderId());
-                String s;
-                System.out.println(new String(receivedMessage.getBody()).length());
-                System.out.println(size);
-                System.out.println(number_of_chunks);
+
                 if(size == number_of_chunks) {
                   break;
                 }
@@ -312,14 +301,11 @@ public class Restore implements Runnable {
               } catch (Exception e) {
                 e.printStackTrace();
               }
-              System.out.println("HELLO???????????????????????????????????????????");
 
 
               if(!checkChunkMsgs(msg)) {
                 send_Message(msg);
                 chunkmsgs.add(msg);
-                System.out.println("SENDING CHUNK");
-                System.out.println("SIZE: " + msg.getBody().length);
 
               }
 

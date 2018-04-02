@@ -230,7 +230,7 @@ public class Backup implements Runnable {
         Path file = Paths.get(file_name);
         BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
         Sha sha = new Sha();
-        file_id = sha.hash256(attr.lastModifiedTime());
+        file_id = sha.hash256(attr.lastModifiedTime().toString());
       } catch(Exception e) {
         e.printStackTrace();
       }

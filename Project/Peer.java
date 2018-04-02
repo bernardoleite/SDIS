@@ -108,8 +108,12 @@ public class Peer implements RMI_Interface {
           currentFiles.setMaximumSpace(maxAllowed);
           System.out.println("Current Maximum Storage: " + maxAllowed + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
-
-          Thread.sleep(3000);
+          serialize_Object();
+          try {
+            Thread.sleep(3000);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
           System.exit(5);
       }
       else if(Double.parseDouble(value) == maxAllowed){
@@ -117,16 +121,26 @@ public class Peer implements RMI_Interface {
           currentFiles.setMaximumSpace(maxAllowed);
           System.out.println("Current Maximum Storage: " + maxAllowed + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+          serialize_Object();
 
-          Thread.sleep(3000);
+          try {
+            Thread.sleep(3000);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
           System.exit(5);
       }
       else if(Double.parseDouble(value) > maxAllowed){
           System.out.println("Rejected... Max Disk Usage is " + maxAllowed + " KBytes");
           System.out.println("Previous Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
+          serialize_Object();
 
-          Thread.sleep(3000);
+          try {
+            Thread.sleep(3000);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
           System.exit(5);
       }
       else if(Double.parseDouble(value) < maxAllowed && Double.parseDouble(value) > currentFiles.maximumSpace){
@@ -134,8 +148,13 @@ public class Peer implements RMI_Interface {
           currentFiles.setMaximumSpace(Double.parseDouble(value));
           System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+          serialize_Object();
 
-          Thread.sleep(3000);
+          try {
+            Thread.sleep(3000);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
           System.exit(5);
       }
       else if(Double.parseDouble(value) < maxAllowed && Double.parseDouble(value) < currentFiles.maximumSpace && Double.parseDouble(value) > currentFiles.getFolderSize()){
@@ -143,8 +162,13 @@ public class Peer implements RMI_Interface {
           currentFiles.setMaximumSpace(Double.parseDouble(value));
           System.out.println("Current Maximum Storage: " + currentFiles.getMaximumSpace() + " KBytes");
           System.out.println("Current Storage Usage: " + currentFiles.getFolderSize() + " KBytes");
+          serialize_Object();
 
-          Thread.sleep(3000);
+          try {
+            Thread.sleep(3000);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
           System.exit(5);
       }
       else if(Double.parseDouble(value) < maxAllowed && Double.parseDouble(value) < currentFiles.maximumSpace && Double.parseDouble(value) < currentFiles.getFolderSize()){
@@ -199,7 +223,11 @@ public class Peer implements RMI_Interface {
         System.out.println("Perceived Replication Degree: " + currentFiles.chunksStore.get(i).getPerceivedReplicationDeg());
         System.out.println();
       }
-      Thread.sleep(3000);
+      try {
+        Thread.sleep(3000);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
       System.exit(6);
     }
 
@@ -273,7 +301,20 @@ public class Peer implements RMI_Interface {
 
         try
         {
-          Peer1 obj = new Peer();
+          File directory = new File("dest/");
+          if (! directory.exists()){
+              directory.mkdir();
+              // If you require it to make the entire directory path including parents,
+              // use directory.mkdirs(); here instead.
+          }
+          directory = new File("restore/");
+          if (! directory.exists()){
+              directory.mkdir();
+              // If you require it to make the entire directory path including parents,
+              // use directory.mkdirs(); here instead.
+          }
+
+          Peer obj = new Peer();
           RMI_Interface stub = (RMI_Interface) UnicastRemoteObject.exportObject(obj, 0);
 
           // Bind the remote object's stub in the registry

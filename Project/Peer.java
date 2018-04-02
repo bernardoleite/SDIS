@@ -223,6 +223,11 @@ public class Peer implements RMI_Interface {
         System.out.println("Perceived Replication Degree: " + currentFiles.chunksStore.get(i).getPerceivedReplicationDeg());
         System.out.println();
       }
+      System.out.println();
+      System.out.println("Current Space: " + currentFiles.currentSpace);
+      System.out.println("Maximum Space: " + currentFiles.maximumSpace);
+      System.out.println();
+
       try {
         Thread.sleep(3000);
       } catch (Exception e) {

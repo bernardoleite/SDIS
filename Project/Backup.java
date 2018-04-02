@@ -47,7 +47,7 @@ public class Backup implements Runnable {
 
     private Random rand = new Random();
 
-    private Message CurrentReceivedMsg;
+    private Message CurrentReceivedMsg = new Message("PUTCHUNK", 1, "0000", "0000", 0, 0, "nothing".getBytes());
 
 
 
@@ -77,19 +77,26 @@ public class Backup implements Runnable {
                         break;
                     }
                 }
-                String[] parts = backup_with_channel.getEmergency().split(" ");
+                String string = new String(backup_with_channel.getEmergencyPutChunk());
+                String[] first = string.split("\r\n\r\n");
+                String[] parts = first[0].split(" ");
 
-                if(!parts[3].equals(CurrentReceivedMsg.getFileId()) && !parts[4].equals(CurrentReceivedMsg.getChunkNo()))
+
+
+                if(CurrentReceivedMsg != null && !parts[3].equals(CurrentReceivedMsg.getFileId()) && !parts[4].equals(CurrentReceivedMsg.getChunkNo())) {
+                  System.out.println(CurrentReceivedMsg.getFileId());
+                  System.out.println(CurrentReceivedMsg.getChunkNo());
                   send_Message(backup_with_channel.getEmergencyPutChunk());
-                
-                backup_with_channel.setEmergency("nada");
-                try {
-                  int j = rand.nextInt(400);
 
-                  Thread.sleep(j);
-                } catch (Exception e) {
-                  e.printStackTrace();
+                  try {
+                    int j = rand.nextInt(400);
+
+                    Thread.sleep(j);
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
                 }
+                backup_with_channel.setEmergency("nada");
 
             }
         }
@@ -360,13 +367,13 @@ public class Backup implements Runnable {
                 serverSocket.receive(incomingPacket);
 
                 Message receivedMessage = treatData(incomingPacket);
-
+                System.out.println("HERE");
                 CurrentReceivedMsg = receivedMessage;
 
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
 
-               
-                if(i == -1 && hasSpace(receivedMessage.getBody().length) && !receivedMessage.getFileId().equals(Integer.toString(port_number))){
+
+                if(i == -1 && hasSpace(receivedMessage.getBody().length) && !receivedMessage.getSenderId().equals(Integer.toString(port_number))){
                   currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getReplication_Deg(), receivedMessage.getBody().length));
                   Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
                   backup_with_channel.setMessage(msg.toString());
@@ -375,7 +382,7 @@ public class Backup implements Runnable {
                   serialize_Object();
                 }
 
-                if(i != -1 && !receivedMessage.getFileId().equals(Integer.toString(port_number))){
+                if(i != -1 && !receivedMessage.getSenderId().equals(Integer.toString(port_number))){
                   Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
                   backup_with_channel.setMessage(msg.toString());
                   serialize_Object();

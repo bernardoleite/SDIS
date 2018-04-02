@@ -47,6 +47,8 @@ public class Backup implements Runnable {
 
     private Random rand = new Random();
 
+    private Message CurrentReceivedMsg;
+
 
 
     //save Files of backup
@@ -75,8 +77,11 @@ public class Backup implements Runnable {
                         break;
                     }
                 }
+                String[] parts = backup_with_channel.getEmergency().split(" ");
 
-                send_Message(backup_with_channel.getEmergencyPutChunk());
+                if(!parts[3].equals(CurrentReceivedMsg.getFileId()) && !parts[4].equals(CurrentReceivedMsg.getChunkNo()))
+                  send_Message(backup_with_channel.getEmergencyPutChunk());
+                
                 backup_with_channel.setEmergency("nada");
                 try {
                   int j = rand.nextInt(400);
@@ -356,21 +361,24 @@ public class Backup implements Runnable {
 
                 Message receivedMessage = treatData(incomingPacket);
 
+                CurrentReceivedMsg = receivedMessage;
+
                 int i = currentFiles.hasChunkStore(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()));
 
-                //if chunk doesn't exists and there is space to save it, accept chunk
-                if(i == -1 && hasSpace(receivedMessage.getBody().length))
+               
+                if(i == -1 && hasSpace(receivedMessage.getBody().length) && !receivedMessage.getFileId().equals(Integer.toString(port_number))){
                   currentFiles.chunksStore.add(new ChunkInfo(receivedMessage.getFileId() + "." + Integer.toString(receivedMessage.getChunkNo()), 1, receivedMessage.getReplication_Deg(), receivedMessage.getBody().length));
+                  Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
+                  backup_with_channel.setMessage(msg.toString());
+                  writeBytesToFileNio(receivedMessage);
+                  System.out.println("Chunk received and saved to HDD!");
+                  serialize_Object();
+                }
 
-                //if chunk doesn't exists and there is no space, do not accept chunk
-                if(!(i == -1 && !hasSpace(receivedMessage.getBody().length))){
-
-                    Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
-                    backup_with_channel.setMessage(msg.toString());
-                    writeBytesToFileNio(receivedMessage);
-                    System.out.println("Chunk received and saved!");
-                    serialize_Object();
-
+                if(i != -1 && !receivedMessage.getFileId().equals(Integer.toString(port_number))){
+                  Message msg = new Message("STORED", 1, Integer.toString(port_number), receivedMessage.getFileId(), receivedMessage.getChunkNo());
+                  backup_with_channel.setMessage(msg.toString());
+                  serialize_Object();
                 }
 
                 backup_with_channel.setMessage("nada");
